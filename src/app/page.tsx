@@ -1,15 +1,14 @@
 import CodeInputForm from '@/components/CodeInputForm'
 import AdSense from '@/components/AdSense'
-import Logo from '@/components/Logo'
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <div className="flex justify-center mb-8">
-            <Logo size="large" />
-          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Promo Code Distribution
+          </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Distribute promo codes to your audience with unique links. Each visitor gets one code, automatically tracked and managed.
           </p>
