@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Promo Code Distribution App
 
-## Getting Started
+A Next.js application for distributing promo codes to users with unique links. Each visitor gets one code automatically tracked by device/IP fingerprinting.
 
-First, run the development server:
+## Features
+
+- **Code Input**: Users can input promo codes via text box (comma, space, or newline separated)
+- **Link Generation**: Generates public claim links and private management links
+- **Visitor Tracking**: Each visitor gets one code based on IP + User-Agent fingerprinting
+- **Management Dashboard**: View statistics, track usage, and export data
+- **Advertisement Space**: Dedicated space for ads on the promo code viewing page
+
+## Tech Stack
+
+- **Frontend**: Next.js 14 with TypeScript and Tailwind CSS
+- **Backend**: Next.js API routes
+- **Database**: Supabase (PostgreSQL)
+- **Deployment**: Vercel
+- **Authentication**: Supabase Auth (optional)
+
+## Setup Instructions
+
+### 1. Database Setup
+
+1. Create a new Supabase project
+2. Run the SQL commands in `supabase-schema.sql` to create the required tables
+3. Copy your Supabase URL and keys
+
+### 2. Environment Variables
+
+Create a `.env.local` file:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
+### 3. Install Dependencies
+
+```bash
+npm install
+```
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 5. Deploy to Vercel
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Then deploy to Vercel and set your environment variables.
 
-## Learn More
+## Usage
 
-To learn more about Next.js, take a look at the following resources:
+1. **Create Campaign**: Enter promo codes on the homepage
+2. **Share Link**: Use the generated public claim link
+3. **Manage Campaign**: Use the private management link to view stats
+4. **Track Usage**: Monitor which codes are claimed and by whom
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API Endpoints
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `POST /api/campaigns` - Create new campaign
+- `POST /api/claim/[id]` - Claim a promo code
+- `GET /api/manage/[slug]` - Get campaign management data
 
-## Deploy on Vercel
+## Database Schema
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### campaigns
+- `id` - Campaign identifier
+- `admin_key` - Private key for management access
+- `created_by` - User ID (optional)
+- `created_at` - Creation timestamp
+- `expires_at` - Expiration timestamp (optional)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### promo_codes
+- `id` - Unique code identifier
+- `campaign_id` - Associated campaign
+- `value` - The actual promo code
+- `claimed_by` - Hashed visitor identifier
+- `claimed_at` - Claim timestamp
+
+## Security Features
+
+- Row Level Security (RLS) policies
+- Hashed visitor identities
+- Unguessable campaign IDs and admin keys
+- Rate limiting ready (implement as needed)
+
+## Advertisement Integration
+
+The claim page includes a dedicated advertisement space that can be customized for:
+- Promoting complementary products
+- Sponsored content
+- Partner offers
+- Premium placement opportunities
+
+## License
+
+MIT
