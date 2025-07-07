@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { generateCampaignId, generateAdminKey, parseCodesInput, deduplicateCodes } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
@@ -24,16 +24,21 @@ export async function POST(request: NextRequest) {
     const campaignId = generateCampaignId()
     const adminKey = generateAdminKey()
 
-    const { error: campaignError } = await supabase
+    const { data: campaignData, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .insert({
         id: campaignId,
         admin_key: adminKey,
       })
+      .select()
 
     if (campaignError) {
       console.error('Campaign creation error:', campaignError)
-      return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Failed to create campaign', 
+        details: campaignError.message,
+        hint: campaignError.hint || 'Check if the campaigns table exists in Supabase'
+      }, { status: 500 })
     }
 
     const promoCodeInserts = deduplicatedCodes.map(code => ({
@@ -41,14 +46,19 @@ export async function POST(request: NextRequest) {
       value: code,
     }))
 
-    const { error: codesError } = await supabase
+    const { data: codesData, error: codesError } = await supabaseAdmin
       .from('promo_codes')
       .insert(promoCodeInserts)
+      .select()
 
     if (codesError) {
       console.error('Promo codes creation error:', codesError)
-      await supabase.from('campaigns').delete().eq('id', campaignId)
-      return NextResponse.json({ error: 'Failed to create promo codes' }, { status: 500 })
+      await supabaseAdmin.from('campaigns').delete().eq('id', campaignId)
+      return NextResponse.json({ 
+        error: 'Failed to create promo codes', 
+        details: codesError.message,
+        hint: codesError.hint || 'Check if the promo_codes table exists in Supabase'
+      }, { status: 500 })
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL 

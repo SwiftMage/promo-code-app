@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getClientIP } from '@/lib/utils'
 import { createHash } from 'crypto'
 
@@ -19,7 +19,7 @@ export async function POST(
     const userAgent = request.headers.get('user-agent') || ''
     const visitorId = generateVisitorId(ip, userAgent)
 
-    const { data: campaign, error: campaignError } = await supabase
+    const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .select('*')
       .eq('id', campaignId)
@@ -33,7 +33,7 @@ export async function POST(
       return NextResponse.json({ error: 'Campaign has expired' }, { status: 410 })
     }
 
-    const { data: existingCode } = await supabase
+    const { data: existingCode } = await supabaseAdmin
       .from('promo_codes')
       .select('*')
       .eq('campaign_id', campaignId)
@@ -44,7 +44,7 @@ export async function POST(
       return NextResponse.json({ code: existingCode.value })
     }
 
-    const { data: availableCode, error: availableError } = await supabase
+    const { data: availableCode, error: availableError } = await supabaseAdmin
       .from('promo_codes')
       .select('*')
       .eq('campaign_id', campaignId)
@@ -56,7 +56,7 @@ export async function POST(
       return NextResponse.json({ error: 'All promo codes have been claimed' }, { status: 410 })
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('promo_codes')
       .update({
         claimed_by: visitorId,

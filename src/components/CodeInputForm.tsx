@@ -24,7 +24,8 @@ export default function CodeInputForm() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create campaign')
+        const errorData = await response.json()
+        throw new Error(errorData.details || errorData.error || 'Failed to create campaign')
       }
 
       const data = await response.json()

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(
   request: NextRequest,
@@ -17,7 +17,7 @@ export async function GET(
     const campaignId = parts[0]
     const adminKey = parts.slice(1).join('-')
 
-    const { data: campaign, error: campaignError } = await supabase
+    const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .select('*')
       .eq('id', campaignId)
@@ -28,7 +28,7 @@ export async function GET(
       return NextResponse.json({ error: 'Campaign not found or access denied' }, { status: 404 })
     }
 
-    const { data: codes, error: codesError } = await supabase
+    const { data: codes, error: codesError } = await supabaseAdmin
       .from('promo_codes')
       .select('*')
       .eq('campaign_id', campaignId)
