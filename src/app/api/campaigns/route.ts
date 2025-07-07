@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const campaignId = generateCampaignId()
     const adminKey = generateAdminKey()
 
-    const { data: campaignData, error: campaignError } = await supabaseAdmin
+    const { error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .insert({
         id: campaignId,
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       value: code,
     }))
 
-    const { data: codesData, error: codesError } = await supabaseAdmin
+    const { error: codesError } = await supabaseAdmin
       .from('promo_codes')
       .insert(promoCodeInserts)
       .select()

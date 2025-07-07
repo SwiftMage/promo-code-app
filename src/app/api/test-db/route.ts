@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET() {
   try {
     // Test if we can connect to Supabase and check tables
-    const { data: campaigns, error: campaignsError } = await supabaseAdmin
+    const { error: campaignsError } = await supabaseAdmin
       .from('campaigns')
       .select('count(*)')
       .limit(1)
 
-    const { data: promoCodes, error: promoCodesError } = await supabaseAdmin
+    const { error: promoCodesError } = await supabaseAdmin
       .from('promo_codes')
       .select('count(*)')
       .limit(1)
