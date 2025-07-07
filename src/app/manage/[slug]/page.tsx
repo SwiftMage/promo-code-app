@@ -244,10 +244,14 @@ export default function ManagePage({ params }: ManagePageProps) {
                     Each visitor is identified using a combination of their IP address and browser fingerprint (User-Agent). 
                     This creates a unique hash that ensures most users receive only one code per campaign.
                   </p>
-                  <p className="text-xs text-yellow-700">
+                  <p className="text-xs text-yellow-700 mb-2">
                     <strong>Limitations:</strong> Users can potentially bypass this by using different devices, networks, 
                     incognito mode, or VPNs. This system provides reasonable protection for honest users but cannot prevent 
                     determined abuse.
+                  </p>
+                  <p className="text-xs text-yellow-700">
+                    <strong>Data Retention:</strong> Campaigns and all associated data are automatically deleted after 30 days 
+                    for privacy and storage optimization.
                   </p>
                 </div>
               </div>

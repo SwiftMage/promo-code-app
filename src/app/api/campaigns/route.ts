@@ -23,12 +23,17 @@ export async function POST(request: NextRequest) {
 
     const campaignId = generateCampaignId()
     const adminKey = generateAdminKey()
+    
+    // Set expiration date to 30 days from now
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 30)
 
     const { error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .insert({
         id: campaignId,
         admin_key: adminKey,
+        expires_at: expiresAt.toISOString(),
       })
       .select()
 

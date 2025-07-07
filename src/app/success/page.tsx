@@ -89,6 +89,7 @@ function SuccessContent() {
                 <li>• Codes are distributed on a first-come, first-served basis</li>
                 <li>• Use the management link to track usage and export data</li>
                 <li>• <strong>Note:</strong> The fingerprinting system is not foolproof - determined users may obtain multiple codes using different devices or networks</li>
+                <li>• <strong>Expiration:</strong> This campaign and all data will be automatically deleted after 30 days</li>
               </ul>
             </div>
 
