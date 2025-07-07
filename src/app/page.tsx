@@ -1,4 +1,5 @@
 import CodeInputForm from '@/components/CodeInputForm'
+import AdSense from '@/components/AdSense'
 
 export default function Home() {
   return (
@@ -15,6 +16,10 @@ export default function Home() {
         
         <div className="max-w-2xl mx-auto">
           <CodeInputForm />
+        </div>
+        
+        <div className="mt-12 max-w-2xl mx-auto">
+          <AdSense />
         </div>
         
         <div className="mt-16 text-center">
