@@ -85,12 +85,20 @@ PROMO2024"
         </div>
 
         <div>
-          <ReCAPTCHA
-            ref={recaptchaRef}
-            sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-            onChange={handleRecaptchaChange}
-            theme="light"
-          />
+          {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+              onChange={handleRecaptchaChange}
+              theme="light"
+            />
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <p className="text-yellow-800 text-sm">
+                reCAPTCHA site key not configured. Current key: {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || 'undefined'}
+              </p>
+            </div>
+          )}
         </div>
 
         {error && (
