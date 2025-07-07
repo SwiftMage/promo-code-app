@@ -123,25 +123,27 @@ export default function ClaimPage({ params }: ClaimPageProps) {
             </div>
           </div>
 
-          {/* Advertisement Space */}
-          <div className="bg-white rounded-lg shadow-lg p-8 border-2 border-dashed border-gray-200">
-            <div className="text-center text-gray-500 mb-4">
-              <div className="text-2xl mb-2">📢</div>
-              <h3 className="text-lg font-semibold mb-2">Advertisement Space</h3>
-              <p className="text-sm">
-                This space is available for advertising your products or services
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-8 min-h-[200px] flex items-center justify-center">
-              <div className="text-center text-gray-400">
-                <div className="text-4xl mb-2">🏪</div>
-                <p className="text-lg font-medium">Your Ad Here</p>
-                <p className="text-sm">Perfect spot to promote complementary products</p>
-                <p className="text-xs mt-2">Premium placement • High visibility • Targeted audience</p>
+          {/* Advertisement Space - Hidden until enabled */}
+          {false && (
+            <div className="bg-white rounded-lg shadow-lg p-8 border-2 border-dashed border-gray-200">
+              <div className="text-center text-gray-500 mb-4">
+                <div className="text-2xl mb-2">📢</div>
+                <h3 className="text-lg font-semibold mb-2">Advertisement Space</h3>
+                <p className="text-sm">
+                  This space is available for advertising your products or services
+                </p>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-8 min-h-[200px] flex items-center justify-center">
+                <div className="text-center text-gray-400">
+                  <div className="text-4xl mb-2">🏪</div>
+                  <p className="text-lg font-medium">Your Ad Here</p>
+                  <p className="text-sm">Perfect spot to promote complementary products</p>
+                  <p className="text-xs mt-2">Premium placement • High visibility • Targeted audience</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </main>
