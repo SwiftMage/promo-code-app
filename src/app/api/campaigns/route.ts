@@ -15,20 +15,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify reCAPTCHA
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY
+    
+    if (!secretKey) {
+      return NextResponse.json({ 
+        error: 'Server configuration error',
+        details: 'reCAPTCHA secret key not configured'
+      }, { status: 500 })
+    }
+
     const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+      body: `secret=${secretKey}&response=${recaptchaToken}`,
     })
 
     const recaptchaData = await recaptchaResponse.json()
     
     if (!recaptchaData.success) {
+      console.error('reCAPTCHA verification failed:', recaptchaData)
       return NextResponse.json({ 
         error: 'reCAPTCHA verification failed',
-        details: 'Please try again'
+        details: recaptchaData['error-codes'] ? `Error codes: ${recaptchaData['error-codes'].join(', ')}` : 'Please try again'
       }, { status: 400 })
     }
 
