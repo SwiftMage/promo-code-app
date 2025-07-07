@@ -22,22 +22,22 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="bg-white rounded-lg p-6 shadow-md">
               <div className="text-3xl mb-4">📝</div>
-              <h3 className="text-lg font-semibold mb-2">1. Input Codes</h3>
-              <p className="text-gray-600">
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">1. Input Codes</h3>
+              <p className="text-gray-700">
                 Enter your promo codes separated by commas, spaces, or new lines
               </p>
             </div>
             <div className="bg-white rounded-lg p-6 shadow-md">
               <div className="text-3xl mb-4">🔗</div>
-              <h3 className="text-lg font-semibold mb-2">2. Get Links</h3>
-              <p className="text-gray-600">
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">2. Get Links</h3>
+              <p className="text-gray-700">
                 Receive a public claim link and private management link
               </p>
             </div>
             <div className="bg-white rounded-lg p-6 shadow-md">
               <div className="text-3xl mb-4">📊</div>
-              <h3 className="text-lg font-semibold mb-2">3. Track Usage</h3>
-              <p className="text-gray-600">
+              <h3 className="text-lg font-semibold mb-2 text-gray-900">3. Track Usage</h3>
+              <p className="text-gray-700">
                 Monitor which codes are claimed and by whom
               </p>
             </div>
