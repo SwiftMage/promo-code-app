@@ -4,10 +4,32 @@ import { generateCampaignId, generateAdminKey, parseCodesInput, deduplicateCodes
 
 export async function POST(request: NextRequest) {
   try {
-    const { codes } = await request.json()
+    const { codes, recaptchaToken } = await request.json()
     
     if (!codes || typeof codes !== 'string') {
       return NextResponse.json({ error: 'Codes are required' }, { status: 400 })
+    }
+
+    if (!recaptchaToken) {
+      return NextResponse.json({ error: 'reCAPTCHA verification required' }, { status: 400 })
+    }
+
+    // Verify reCAPTCHA
+    const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+    })
+
+    const recaptchaData = await recaptchaResponse.json()
+    
+    if (!recaptchaData.success) {
+      return NextResponse.json({ 
+        error: 'reCAPTCHA verification failed',
+        details: 'Please try again'
+      }, { status: 400 })
     }
 
     const parsedCodes = parseCodesInput(codes)

@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import ReCAPTCHA from 'react-google-recaptcha'
 
 export default function CodeInputForm() {
   const [codes, setCodes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const recaptchaRef = useRef<ReCAPTCHA>(null)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -14,13 +17,19 @@ export default function CodeInputForm() {
     setLoading(true)
     setError('')
 
+    if (!recaptchaToken) {
+      setError('Please complete the reCAPTCHA verification')
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ codes }),
+        body: JSON.stringify({ codes, recaptchaToken }),
       })
 
       if (!response.ok) {
@@ -34,7 +43,16 @@ export default function CodeInputForm() {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
+      // Reset reCAPTCHA
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset()
+        setRecaptchaToken(null)
+      }
     }
+  }
+
+  const handleRecaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token)
   }
 
   return (
@@ -66,6 +84,15 @@ PROMO2024"
           </p>
         </div>
 
+        <div>
+          <ReCAPTCHA
+            ref={recaptchaRef}
+            sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+            onChange={handleRecaptchaChange}
+            theme="light"
+          />
+        </div>
+
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
             <p className="text-red-700">{error}</p>
@@ -74,7 +101,7 @@ PROMO2024"
 
         <button
           type="submit"
-          disabled={loading || !codes.trim()}
+          disabled={loading || !codes.trim() || !recaptchaToken}
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
           {loading ? 'Creating Campaign...' : 'Create Campaign'}
