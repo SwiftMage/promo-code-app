@@ -1,9 +1,10 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
+import Link from 'next/link'
 
-export default function SuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams()
   const claimUrl = searchParams.get('claimUrl')
   const manageUrl = searchParams.get('manageUrl')
@@ -111,15 +112,30 @@ export default function SuccessPage() {
           </div>
 
           <div className="mt-8 text-center">
-            <a
+            <Link
               href="/"
               className="text-blue-600 hover:text-blue-800 font-medium"
             >
               ← Create Another Campaign
-            </a>
+            </Link>
           </div>
         </div>
       </div>
     </main>
+  )
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">Loading...</p>
+        </div>
+      </main>
+    }>
+      <SuccessContent />
+    </Suspense>
   )
 }

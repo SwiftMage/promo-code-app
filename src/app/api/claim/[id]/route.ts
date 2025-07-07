@@ -10,9 +10,10 @@ function generateVisitorId(ip: string, userAgent: string): string {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const campaignId = params.id
     const ip = getClientIP(request)
     const userAgent = request.headers.get('user-agent') || ''
@@ -32,7 +33,7 @@ export async function POST(
       return NextResponse.json({ error: 'Campaign has expired' }, { status: 410 })
     }
 
-    const { data: existingCode, error: existingError } = await supabase
+    const { data: existingCode } = await supabase
       .from('promo_codes')
       .select('*')
       .eq('campaign_id', campaignId)

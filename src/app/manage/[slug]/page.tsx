@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
 
 interface ManagePageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 interface CampaignStats {
@@ -34,7 +33,8 @@ export default function ManagePage({ params }: ManagePageProps) {
   useEffect(() => {
     const fetchCampaignData = async () => {
       try {
-        const response = await fetch(`/api/manage/${params.slug}`)
+        const resolvedParams = await params
+        const response = await fetch(`/api/manage/${resolvedParams.slug}`)
         
         if (!response.ok) {
           throw new Error('Failed to fetch campaign data')
@@ -51,7 +51,7 @@ export default function ManagePage({ params }: ManagePageProps) {
     }
 
     fetchCampaignData()
-  }, [params.slug])
+  }, [params])
 
   const exportCodes = () => {
     const csv = [

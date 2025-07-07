@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
 
 interface ClaimPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function ClaimPage({ params }: ClaimPageProps) {
@@ -18,7 +17,8 @@ export default function ClaimPage({ params }: ClaimPageProps) {
   useEffect(() => {
     const claimCode = async () => {
       try {
-        const response = await fetch(`/api/claim/${params.id}`, {
+        const resolvedParams = await params
+        const response = await fetch(`/api/claim/${resolvedParams.id}`, {
           method: 'POST',
         })
         
@@ -29,7 +29,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
         } else {
           setError(data.error || 'Failed to claim code')
         }
-      } catch (err) {
+      } catch {
         setError('Network error occurred')
       } finally {
         setLoading(false)
@@ -37,7 +37,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
     }
 
     claimCode()
-  }, [params.id])
+  }, [params])
 
   const copyToClipboard = async () => {
     if (!code) return
@@ -100,7 +100,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
             Congratulations!
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            Here's your exclusive promo code:
+            Here&apos;s your exclusive promo code:
           </p>
           
           <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
