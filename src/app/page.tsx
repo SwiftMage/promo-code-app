@@ -6,10 +6,17 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Promo Code Distribution
+          <h1 className="text-5xl md:text-6xl font-bold mb-6">
+            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Promo
+            </span>
+            <span className="text-gray-900">Code</span>
+            <br />
+            <span className="bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 bg-clip-text text-transparent">
+              Distribution
+            </span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Distribute promo codes to your audience with unique links. Each visitor gets one code, automatically tracked and managed.
           </p>
         </div>
