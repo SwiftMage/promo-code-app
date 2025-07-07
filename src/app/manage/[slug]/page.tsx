@@ -196,7 +196,7 @@ export default function ManagePage({ params }: ManagePageProps) {
                     <h3 className="text-lg font-semibold text-gray-800 mb-2">
                       Campaign Details
                     </h3>
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-2 text-sm text-gray-900">
                       <div>
                         <span className="font-medium">Created:</span>{' '}
                         {new Date(stats.createdAt).toLocaleDateString()}
