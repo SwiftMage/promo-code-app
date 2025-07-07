@@ -42,6 +42,20 @@ export default function Home() {
               </p>
             </div>
           </div>
+          
+          <div className="mt-12 max-w-4xl mx-auto">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-yellow-800 mb-3">Important Notice</h3>
+              <p className="text-sm text-yellow-700 mb-2">
+                Our system uses IP address and browser fingerprinting to ensure each visitor receives only one promo code per campaign. 
+                This provides reasonable protection for fair distribution.
+              </p>
+              <p className="text-sm text-yellow-700">
+                <strong>Limitation:</strong> Determined users may obtain multiple codes using different devices, networks, 
+                or browsers. This system is not foolproof but works well for honest users.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </main>
