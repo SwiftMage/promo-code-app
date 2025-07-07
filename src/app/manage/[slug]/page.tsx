@@ -237,6 +237,19 @@ export default function ManagePage({ params }: ManagePageProps) {
                     </div>
                   </div>
                 </div>
+                
+                <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                  <h4 className="text-sm font-semibold text-yellow-800 mb-2">Visitor Identification System</h4>
+                  <p className="text-xs text-yellow-700 mb-2">
+                    Each visitor is identified using a combination of their IP address and browser fingerprint (User-Agent). 
+                    This creates a unique hash that ensures most users receive only one code per campaign.
+                  </p>
+                  <p className="text-xs text-yellow-700">
+                    <strong>Limitations:</strong> Users can potentially bypass this by using different devices, networks, 
+                    incognito mode, or VPNs. This system provides reasonable protection for honest users but cannot prevent 
+                    determined abuse.
+                  </p>
+                </div>
               </div>
             )}
 

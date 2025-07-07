@@ -121,6 +121,14 @@ export default function ClaimPage({ params }: ClaimPageProps) {
               <p>• Use it at checkout to get your discount</p>
               <p>• Save this page or copy the code now</p>
             </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
+              <p className="text-xs text-blue-800">
+                <strong>Note:</strong> We use IP address and browser fingerprinting to ensure each visitor receives only one code. 
+                While this works for most users, determined individuals may be able to obtain multiple codes using different devices, 
+                networks, or browsers. This system provides reasonable protection but is not foolproof.
+              </p>
+            </div>
           </div>
 
           {/* Advertisement Space */}
