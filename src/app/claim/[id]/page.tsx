@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3'
 import AdSense from '@/components/AdSense'
 
 interface ClaimPageProps {
@@ -14,13 +15,26 @@ export default function ClaimPage({ params }: ClaimPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const { executeRecaptcha } = useGoogleReCaptcha()
 
   useEffect(() => {
     const claimCode = async () => {
       try {
+        if (!executeRecaptcha) {
+          setError('reCAPTCHA not loaded')
+          setLoading(false)
+          return
+        }
+
+        const recaptchaToken = await executeRecaptcha('claim_code')
+        
         const resolvedParams = await params
         const response = await fetch(`/api/claim/${resolvedParams.id}`, {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ recaptchaToken }),
         })
         
         const data = await response.json()
@@ -38,7 +52,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
     }
 
     claimCode()
-  }, [params])
+  }, [params, executeRecaptcha])
 
   const copyToClipboard = async () => {
     if (!code) return

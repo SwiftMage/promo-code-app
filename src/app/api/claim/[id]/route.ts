@@ -3,6 +3,31 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getClientIP } from '@/lib/utils'
 import { createHash } from 'crypto'
 
+async function verifyRecaptcha(token: string): Promise<boolean> {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY
+  
+  if (!secretKey) {
+    console.error('reCAPTCHA secret key not configured')
+    return false
+  }
+
+  try {
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `secret=${secretKey}&response=${token}`,
+    })
+
+    const result = await response.json()
+    return result.success && result.score >= 0.7
+  } catch (error) {
+    console.error('reCAPTCHA verification error:', error)
+    return false
+  }
+}
+
 function generateVisitorId(ip: string, userAgent: string): string {
   const combined = `${ip}:${userAgent}`
   return createHash('sha256').update(combined).digest('hex')
@@ -15,6 +40,18 @@ export async function POST(
   try {
     const params = await context.params
     const campaignId = params.id
+    const body = await request.json()
+    const { recaptchaToken } = body
+
+    if (!recaptchaToken) {
+      return NextResponse.json({ error: 'reCAPTCHA token is required' }, { status: 400 })
+    }
+
+    const isValidRecaptcha = await verifyRecaptcha(recaptchaToken)
+    if (!isValidRecaptcha) {
+      return NextResponse.json({ error: 'reCAPTCHA verification failed' }, { status: 400 })
+    }
+
     const ip = getClientIP(request)
     const userAgent = request.headers.get('user-agent') || ''
     const visitorId = generateVisitorId(ip, userAgent)
