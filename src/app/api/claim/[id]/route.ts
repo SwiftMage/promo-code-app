@@ -21,7 +21,8 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
     })
 
     const result = await response.json()
-    return result.success && result.score >= 0.7
+    // v2 doesn't have scores, just success/fail
+    return result.success === true
   } catch (error) {
     console.error('reCAPTCHA verification error:', error)
     return false

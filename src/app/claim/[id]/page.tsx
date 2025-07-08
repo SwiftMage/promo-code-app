@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3'
+import { useEffect, useState, useRef } from 'react'
+import ReCAPTCHA from 'react-google-recaptcha'
 import AdSense from '@/components/AdSense'
 
 interface ClaimPageProps {
@@ -12,47 +12,52 @@ interface ClaimPageProps {
 
 export default function ClaimPage({ params }: ClaimPageProps) {
   const [code, setCode] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const { executeRecaptcha } = useGoogleReCaptcha()
+  const [verified, setVerified] = useState(false)
+  const [campaignId, setCampaignId] = useState<string | null>(null)
+  const recaptchaRef = useRef<ReCAPTCHA>(null)
 
   useEffect(() => {
-    const claimCode = async () => {
-      try {
-        if (!executeRecaptcha) {
-          setError('reCAPTCHA not loaded')
-          setLoading(false)
-          return
-        }
-
-        const recaptchaToken = await executeRecaptcha('claim_code')
-        
-        const resolvedParams = await params
-        const response = await fetch(`/api/claim/${resolvedParams.id}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ recaptchaToken }),
-        })
-        
-        const data = await response.json()
-        
-        if (response.ok) {
-          setCode(data.code)
-        } else {
-          setError(data.error || 'Failed to claim code')
-        }
-      } catch {
-        setError('Network error occurred')
-      } finally {
-        setLoading(false)
-      }
+    const getCampaignId = async () => {
+      const resolvedParams = await params
+      setCampaignId(resolvedParams.id)
     }
+    getCampaignId()
+  }, [params])
 
-    claimCode()
-  }, [params, executeRecaptcha])
+  const handleRecaptchaChange = async (token: string | null) => {
+    if (!token || !campaignId) return
+    
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch(`/api/claim/${campaignId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ recaptchaToken: token }),
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        setCode(data.code)
+        setVerified(true)
+      } else {
+        setError(data.error || 'Failed to claim code')
+        recaptchaRef.current?.reset()
+      }
+    } catch {
+      setError('Network error occurred')
+      recaptchaRef.current?.reset()
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const copyToClipboard = async () => {
     if (!code) return
@@ -66,12 +71,31 @@ export default function ClaimPage({ params }: ClaimPageProps) {
     }
   }
 
-  if (loading) {
+  if (!verified && !error) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Getting your promo code...</p>
+          <div className="text-5xl mb-6">🔐</div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">
+            Verify You&apos;re Human
+          </h1>
+          <p className="text-gray-600 mb-8">
+            Please complete the verification below to claim your promo code
+          </p>
+          <div className="inline-block">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
+              onChange={handleRecaptchaChange}
+              theme="light"
+            />
+          </div>
+          {loading && (
+            <div className="mt-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="text-sm text-gray-600 mt-2">Verifying...</p>
+            </div>
+          )}
         </div>
       </main>
     )
