@@ -15,7 +15,15 @@ export default function ReCaptchaProvider({ children }: ReCaptchaProviderProps) 
   }
 
   return (
-    <GoogleReCaptchaProvider reCaptchaKey={siteKey}>
+    <GoogleReCaptchaProvider 
+      reCaptchaKey={siteKey}
+      useRecaptchaNet={false}
+      useEnterprise={false}
+      scriptProps={{
+        async: false,
+        defer: false
+      }}
+    >
       {children}
     </GoogleReCaptchaProvider>
   )
