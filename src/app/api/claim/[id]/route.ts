@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getClientIP } from '@/lib/utils'
+import { fetchRedditPostContent } from '@/lib/reddit'
 import { createHash } from 'crypto'
 
 async function verifyRecaptcha(token: string): Promise<boolean> {
@@ -42,15 +43,18 @@ export async function POST(
     const params = await context.params
     const campaignId = params.id
     const body = await request.json()
-    const { recaptchaToken } = body
+    const { recaptchaToken, redditUsername, funnyWord } = body
 
     if (!recaptchaToken) {
       return NextResponse.json({ error: 'reCAPTCHA token is required' }, { status: 400 })
     }
 
-    const isValidRecaptcha = await verifyRecaptcha(recaptchaToken)
-    if (!isValidRecaptcha) {
-      return NextResponse.json({ error: 'reCAPTCHA verification failed' }, { status: 400 })
+    // Skip reCAPTCHA verification if it's already verified (for Reddit flow)
+    if (recaptchaToken !== 'verified') {
+      const isValidRecaptcha = await verifyRecaptcha(recaptchaToken)
+      if (!isValidRecaptcha) {
+        return NextResponse.json({ error: 'reCAPTCHA verification failed' }, { status: 400 })
+      }
     }
 
     const ip = getClientIP(request)
@@ -69,6 +73,42 @@ export async function POST(
 
     if (campaign.expires_at && new Date(campaign.expires_at) < new Date()) {
       return NextResponse.json({ error: 'Campaign has expired' }, { status: 410 })
+    }
+
+    // Check Reddit verification if required
+    if (campaign.require_reddit_verification) {
+      if (!redditUsername && !funnyWord) {
+        return NextResponse.json({ error: 'Reddit username or funny word is required for this campaign' }, { status: 400 })
+      }
+
+      if (!campaign.reddit_post_url) {
+        return NextResponse.json({ error: 'Campaign configuration error: Reddit post URL not set' }, { status: 500 })
+      }
+
+      try {
+        const { usernames, allCommentText } = await fetchRedditPostContent(campaign.reddit_post_url)
+        
+        if (redditUsername) {
+          // Username verification
+          if (!usernames.includes(redditUsername)) {
+            return NextResponse.json({ 
+              error: `Username "${redditUsername}" not found in the Reddit post. Please make sure you've commented in the specified post.` 
+            }, { status: 400 })
+          }
+        } else if (funnyWord) {
+          // Funny word verification
+          if (!allCommentText.includes(funnyWord.toLowerCase())) {
+            return NextResponse.json({ 
+              error: `Secret word "${funnyWord}" not found in the Reddit post. Please make sure you've commented the word in the specified post.` 
+            }, { status: 400 })
+          }
+        }
+      } catch (error) {
+        console.error('Reddit verification error:', error)
+        return NextResponse.json({ 
+          error: 'Unable to verify Reddit post. Please try again later.' 
+        }, { status: 500 })
+      }
     }
 
     const { data: existingCode } = await supabaseAdmin

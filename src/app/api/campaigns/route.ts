@@ -4,7 +4,7 @@ import { generateCampaignId, generateAdminKey, parseCodesInput, deduplicateCodes
 
 export async function POST(request: NextRequest) {
   try {
-    const { codes, recaptchaToken } = await request.json()
+    const { codes, recaptchaToken, requireRedditVerification, redditPostUrl } = await request.json()
     
     if (!codes || typeof codes !== 'string') {
       return NextResponse.json({ error: 'Codes are required' }, { status: 400 })
@@ -12,6 +12,10 @@ export async function POST(request: NextRequest) {
 
     if (!recaptchaToken) {
       return NextResponse.json({ error: 'reCAPTCHA verification required' }, { status: 400 })
+    }
+
+    if (requireRedditVerification && (!redditPostUrl || !redditPostUrl.includes('reddit.com'))) {
+      return NextResponse.json({ error: 'Valid Reddit post URL required for verification' }, { status: 400 })
     }
 
     // Verify reCAPTCHA
@@ -66,6 +70,8 @@ export async function POST(request: NextRequest) {
         id: campaignId,
         admin_key: adminKey,
         expires_at: expiresAt.toISOString(),
+        require_reddit_verification: requireRedditVerification || false,
+        reddit_post_url: redditPostUrl || null,
       })
       .select()
 

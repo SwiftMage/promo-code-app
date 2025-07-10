@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface DashboardStats {
@@ -29,7 +29,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('')
   const router = useRouter()
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/stats')
       
@@ -49,11 +49,11 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
 
   useEffect(() => {
     fetchStats()
-  }, [])
+  }, [fetchStats])
 
   const logout = async () => {
     document.cookie = 'admin-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'

@@ -9,6 +9,8 @@ export default function CodeInputForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const [requireRedditVerification, setRequireRedditVerification] = useState(false)
+  const [redditPostUrl, setRedditPostUrl] = useState('')
   const recaptchaRef = useRef<ReCAPTCHA>(null)
   const router = useRouter()
 
@@ -23,13 +25,24 @@ export default function CodeInputForm() {
       return
     }
 
+    if (requireRedditVerification && !redditPostUrl.trim()) {
+      setError('Please provide a Reddit post URL for verification')
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ codes, recaptchaToken }),
+        body: JSON.stringify({ 
+          codes, 
+          recaptchaToken,
+          requireRedditVerification,
+          redditPostUrl: requireRedditVerification ? redditPostUrl.trim() : null
+        }),
       })
 
       if (!response.ok) {
@@ -71,7 +84,7 @@ export default function CodeInputForm() {
             rows={8}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
             style={{ color: '#111827', backgroundColor: '#ffffff' }}
-            placeholder="Enter your promo codes here, separated by commas, spaces, or new lines:
+            placeholder="Enter your promo codes here, separated by commas or new lines:
 
 SAVE10
 WELCOME20
@@ -82,6 +95,41 @@ PROMO2024"
           <p className="mt-2 text-sm text-gray-500">
             Each visitor will receive one unique code from your list
           </p>
+        </div>
+
+        <div>
+          <div className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              id="requireRedditVerification"
+              checked={requireRedditVerification}
+              onChange={(e) => setRequireRedditVerification(e.target.checked)}
+              className="mr-2"
+            />
+            <label htmlFor="requireRedditVerification" className="text-sm font-medium text-gray-700">
+              Require Reddit post verification
+            </label>
+          </div>
+          
+          {requireRedditVerification && (
+            <div className="mb-6">
+              <label htmlFor="redditPostUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                Reddit Post URL
+              </label>
+              <input
+                type="url"
+                id="redditPostUrl"
+                value={redditPostUrl}
+                onChange={(e) => setRedditPostUrl(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://www.reddit.com/r/example/comments/xyz/post_title/"
+                required={requireRedditVerification}
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                Users will need to comment in this Reddit post with their username to claim a code
+              </p>
+            </div>
+          )}
         </div>
 
         <div>

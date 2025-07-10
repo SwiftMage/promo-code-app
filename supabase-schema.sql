@@ -4,7 +4,9 @@ CREATE TABLE campaigns (
     admin_key TEXT NOT NULL,
     created_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    expires_at TIMESTAMP WITH TIME ZONE
+    expires_at TIMESTAMP WITH TIME ZONE,
+    require_reddit_verification BOOLEAN DEFAULT FALSE,
+    reddit_post_url TEXT
 );
 
 -- Create promo_codes table
