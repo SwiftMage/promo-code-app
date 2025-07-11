@@ -18,53 +18,38 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       cleanUrl = cleanUrl.slice(0, -1);
     }
     
-    // Try different methods to fetch Reddit content
-    let data;
-    let response;
+    // Use CORS proxy method (the only reliable method)
+    const jsonUrl = cleanUrl.endsWith('.json') ? cleanUrl : `${cleanUrl}.json`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(jsonUrl)}`;
     
-    // Method 1: Try JSON endpoint with simple headers
-    try {
-      const jsonUrl = cleanUrl.endsWith('.json') ? cleanUrl : `${cleanUrl}.json`;
-      console.log('Attempting to fetch Reddit JSON:', jsonUrl);
-      
-      response = await fetch(jsonUrl);
-      
-      if (response.ok) {
-        data = await response.json();
-        console.log('Successfully fetched Reddit JSON');
-      }
-    } catch (error) {
-      console.log('JSON fetch failed, trying alternative method:', error);
+    console.log('Fetching Reddit content via CORS proxy:', proxyUrl);
+    
+    const response = await fetch(proxyUrl);
+    
+    if (!response.ok) {
+      throw new Error(`CORS proxy returned ${response.status}: ${response.statusText}`);
     }
     
-    // Method 2: If JSON fails, try with old.reddit.com
-    if (!data) {
-      try {
-        const oldRedditUrl = cleanUrl.replace('www.reddit.com', 'old.reddit.com');
-        const oldJsonUrl = oldRedditUrl.endsWith('.json') ? oldRedditUrl : `${oldRedditUrl}.json`;
-        console.log('Attempting old.reddit.com:', oldJsonUrl);
-        
-        response = await fetch(oldJsonUrl);
-        
-        if (response.ok) {
-          data = await response.json();
-          console.log('Successfully fetched from old.reddit.com');
-        }
-      } catch (error) {
-        console.log('Old Reddit fetch failed:', error);
-      }
-    }
+    const data = await response.json();
+    console.log('Successfully fetched Reddit content via CORS proxy');
     
-    if (!data) {
-      throw new Error('Failed to fetch Reddit post from all methods. The post may be private or deleted.');
-    }
+    // Log the data structure for debugging
+    console.log('Reddit data structure:', JSON.stringify(data, null, 2).substring(0, 500) + '...');
     
-    console.log('Reddit data structure:', JSON.stringify(data).substring(0, 200) + '...');
+    // Check if we got valid Reddit data
+    if (!Array.isArray(data) || data.length < 2) {
+      console.error('Invalid Reddit data structure:', data);
+      throw new Error('Invalid Reddit post data - the post may be private, deleted, or the URL is incorrect');
+    }
     
     // Reddit JSON structure: data is an array where [0] is the post, [1] is comments
     const comments: RedditComment[] = data[1]?.data?.children || [];
     
     console.log('Found comments:', comments.length);
+    
+    if (comments.length === 0) {
+      console.warn('No comments found in Reddit post');
+    }
     
     const usernames: string[] = [];
     const commentTexts: string[] = [];
@@ -86,6 +71,9 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     
     comments.forEach(extractData);
     
+    console.log('Extracted usernames:', usernames);
+    console.log('Total comment text length:', commentTexts.join(' ').length);
+    
     // Remove duplicates and return both usernames and combined comment text
     return {
       usernames: [...new Set(usernames)],
@@ -99,7 +87,19 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       stack: error instanceof Error ? error.stack : undefined,
       url: postUrl
     });
-    throw new Error(`Failed to fetch Reddit post content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('CORS proxy returned')) {
+        throw new Error(`Reddit fetch failed: ${error.message}. The post may be private or deleted.`);
+      } else if (error.message.includes('Invalid Reddit post data')) {
+        throw error; // Use the specific error message
+      } else {
+        throw new Error(`Reddit fetch error: ${error.message}`);
+      }
+    } else {
+      throw new Error('Unknown error occurred while fetching Reddit post');
+    }
   }
 }
 
