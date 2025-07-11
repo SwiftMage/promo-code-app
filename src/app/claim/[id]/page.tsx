@@ -37,24 +37,39 @@ export default function ClaimPage({ params }: ClaimPageProps) {
   useEffect(() => {
     // Load reCAPTCHA v3 script
     const loadRecaptcha = () => {
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+      console.log('reCAPTCHA Site Key:', siteKey ? 'Present' : 'Missing')
+      
+      if (!siteKey) {
+        console.error('NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set')
+        setError('reCAPTCHA configuration missing')
+        return
+      }
+
       if (window.grecaptcha) {
+        console.log('reCAPTCHA already loaded')
         setRecaptchaReady(true)
         return
       }
 
+      console.log('Loading reCAPTCHA script...')
       const script = document.createElement('script')
-      script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`
+      script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`
       script.onload = () => {
+        console.log('reCAPTCHA script loaded')
         window.grecaptcha.ready(() => {
+          console.log('reCAPTCHA ready')
           setRecaptchaReady(true)
         })
+      }
+      script.onerror = () => {
+        console.error('Failed to load reCAPTCHA script')
+        setError('Failed to load reCAPTCHA')
       }
       document.head.appendChild(script)
     }
 
-    if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
-      loadRecaptcha()
-    }
+    loadRecaptcha()
 
     const getCampaignId = async () => {
       const resolvedParams = await params

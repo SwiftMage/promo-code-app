@@ -127,7 +127,7 @@ export default function Home() {
           </div>
           <h1 className="sr-only">PromoDistro - Free Promo Code Distribution and Management Tool</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            <strong>Distribute promo codes</strong> to your audience with unique links. Each visitor gets one code, automatically tracked and managed. Perfect for <em>marketing campaigns</em>, <em>giveaways</em>, and <em>promotional events</em>.
+            Distribute promo codes with unique links. One code per visitor, automatically tracked.
           </p>
         </header>
         
