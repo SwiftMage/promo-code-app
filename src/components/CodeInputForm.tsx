@@ -122,6 +122,7 @@ PROMO2024"
                 value={redditPostUrl}
                 onChange={(e) => setRedditPostUrl(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
+                style={{ color: '#111827', backgroundColor: '#ffffff' }}
                 placeholder="https://www.reddit.com/r/example/comments/xyz/post_title/"
                 required={requireRedditVerification}
               />
