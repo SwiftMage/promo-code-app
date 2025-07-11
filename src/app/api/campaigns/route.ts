@@ -123,15 +123,35 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-      (process.env.NEXT_PUBLIC_VERCEL_URL 
-        ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-        : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000')
+    // Determine base URL based on request origin
+    const host = request.headers.get('host')
+    const protocol = request.headers.get('x-forwarded-proto') || 'http'
+    const isLocalhost = host?.includes('localhost') || host?.includes('127.0.0.1')
+    
+    let baseUrl: string
+    if (isLocalhost) {
+      // Use the actual host from the request for localhost
+      baseUrl = `${protocol}://${host}`
+    } else {
+      // Use configured base URL for production
+      baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+        (process.env.NEXT_PUBLIC_VERCEL_URL 
+          ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+          : process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : 'http://localhost:3000')
+    }
 
     const claimUrl = `${baseUrl}/claim/${campaignId}`
     const manageUrl = `${baseUrl}/manage/${campaignId}-${adminKey}`
+
+    console.log('Generated URLs:', { 
+      host, 
+      isLocalhost, 
+      baseUrl, 
+      claimUrl: claimUrl.substring(0, 50) + '...',
+      manageUrl: manageUrl.substring(0, 50) + '...'
+    })
 
     return NextResponse.json({
       campaignId,
