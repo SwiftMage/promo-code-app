@@ -73,6 +73,20 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       throw new Error('Invalid response - expected HTML but got something else');
     }
     
+    // Log a sample of the HTML to help debug username extraction
+    const sampleStart = html.indexOf('BETO123USA');
+    if (sampleStart !== -1) {
+      console.log('Found BETO123USA in HTML at position:', sampleStart);
+      console.log('Context around username:', html.substring(Math.max(0, sampleStart - 100), sampleStart + 100));
+    } else {
+      console.log('BETO123USA not found in raw HTML');
+      // Look for any /user/ links to debug
+      const userLinkSample = html.match(/\/user\/[^"\/]+/);
+      if (userLinkSample) {
+        console.log('Sample user link found:', userLinkSample[0]);
+      }
+    }
+    
     // Extract usernames and comment text using regex patterns
     const usernames: string[] = [];
     const commentTexts: string[] = [];
@@ -130,7 +144,31 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       }
     }
     
-    console.log('Total unique usernames found:', [...new Set(usernames)].length);
+    // Also try to find usernames in newer Reddit HTML structure
+    if (usernames.length === 0) {
+      console.log('No usernames found with standard patterns, trying alternative patterns...');
+      
+      // Try newer Reddit structure patterns
+      const altPatterns = [
+        /class="[^"]*author[^"]*"[^>]*href="[^"]*\/user\/([^"\/]+)"/g,
+        /data-username="([^"]+)"/g,
+        /<a[^>]*href="\/user\/([^"\/]+)"[^>]*class="[^"]*author/g,
+        /by\s+<a[^>]*href="[^"]*\/user\/([^"\/]+)"/g,
+      ];
+      
+      for (const pattern of altPatterns) {
+        let match;
+        while ((match = pattern.exec(html)) !== null) {
+          if (match[1] && match[1] !== '[deleted]' && match[1] !== 'AutoModerator') {
+            usernames.push(match[1]);
+          }
+        }
+      }
+    }
+    
+    const uniqueUsernames = [...new Set(usernames)];
+    console.log('Total unique usernames found:', uniqueUsernames.length);
+    console.log('First 10 usernames:', uniqueUsernames.slice(0, 10));
     console.log('Total comment text length:', commentTexts.join(' ').length);
     
     // Remove duplicates and return both usernames and combined comment text
