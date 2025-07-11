@@ -105,8 +105,9 @@ export async function POST(
         }
       } catch (error) {
         console.error('Reddit verification error:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         return NextResponse.json({ 
-          error: 'Unable to verify Reddit post. Please try again later.' 
+          error: `Unable to verify Reddit post: ${errorMessage}. Please check the Reddit URL and try again.` 
         }, { status: 500 })
       }
     }

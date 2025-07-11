@@ -12,23 +12,59 @@ type RedditComment = {
 
 export async function fetchRedditPostContent(postUrl: string): Promise<{usernames: string[], allCommentText: string}> {
   try {
-    // Ensure we're getting the JSON version of the post
-    const jsonUrl = postUrl.endsWith('.json') ? postUrl : `${postUrl}.json`;
-    
-    const response = await fetch(jsonUrl, {
-      headers: {
-        'User-Agent': 'PromoDistro/1.0 (Code verification bot)',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch Reddit post: ${response.status}`);
+    // Clean the URL - remove trailing slashes and ensure proper format
+    let cleanUrl = postUrl.trim();
+    if (cleanUrl.endsWith('/')) {
+      cleanUrl = cleanUrl.slice(0, -1);
     }
-
-    const data = await response.json();
+    
+    // Try different methods to fetch Reddit content
+    let data;
+    let response;
+    
+    // Method 1: Try JSON endpoint with simple headers
+    try {
+      const jsonUrl = cleanUrl.endsWith('.json') ? cleanUrl : `${cleanUrl}.json`;
+      console.log('Attempting to fetch Reddit JSON:', jsonUrl);
+      
+      response = await fetch(jsonUrl);
+      
+      if (response.ok) {
+        data = await response.json();
+        console.log('Successfully fetched Reddit JSON');
+      }
+    } catch (error) {
+      console.log('JSON fetch failed, trying alternative method:', error);
+    }
+    
+    // Method 2: If JSON fails, try with old.reddit.com
+    if (!data) {
+      try {
+        const oldRedditUrl = cleanUrl.replace('www.reddit.com', 'old.reddit.com');
+        const oldJsonUrl = oldRedditUrl.endsWith('.json') ? oldRedditUrl : `${oldRedditUrl}.json`;
+        console.log('Attempting old.reddit.com:', oldJsonUrl);
+        
+        response = await fetch(oldJsonUrl);
+        
+        if (response.ok) {
+          data = await response.json();
+          console.log('Successfully fetched from old.reddit.com');
+        }
+      } catch (error) {
+        console.log('Old Reddit fetch failed:', error);
+      }
+    }
+    
+    if (!data) {
+      throw new Error('Failed to fetch Reddit post from all methods. The post may be private or deleted.');
+    }
+    
+    console.log('Reddit data structure:', JSON.stringify(data).substring(0, 200) + '...');
     
     // Reddit JSON structure: data is an array where [0] is the post, [1] is comments
     const comments: RedditComment[] = data[1]?.data?.children || [];
+    
+    console.log('Found comments:', comments.length);
     
     const usernames: string[] = [];
     const commentTexts: string[] = [];
