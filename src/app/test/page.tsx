@@ -1,4 +1,39 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+
 export default function TestPage() {
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/admin/validate')
+        if (!response.ok) {
+          router.push('/test/login')
+          return
+        }
+        setLoading(false)
+      } catch {
+        router.push('/test/login')
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verifying access...</p>
+        </div>
+      </div>
+    )
+  }
   const tests = [
     {
       title: 'reCAPTCHA v3 Test',
@@ -163,6 +198,18 @@ export default function TestPage() {
               <li>• Reddit tests may fail if Reddit blocks requests</li>
               <li>• Server-side tests are more reliable than client-side CORS proxy tests</li>
             </ul>
+          </div>
+
+          <div className="mt-4 text-right">
+            <button
+              onClick={() => {
+                document.cookie = 'admin-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+                router.push('/test/login')
+              }}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </div>

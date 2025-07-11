@@ -32,6 +32,9 @@ export function middleware(request: NextRequest) {
   
   const pathname = request.nextUrl.pathname
   
+  // Note: /test routes are protected client-side in the component
+  // Middleware protection removed to avoid redirect loops
+  
   if (pathname.startsWith('/api/')) {
     const isLimited = rateLimit(ip, 100, 60000)
     

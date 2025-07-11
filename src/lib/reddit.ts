@@ -39,7 +39,7 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
         
         const response = await fetch(proxyUrl, {
           headers: {
-            'Accept': 'text/html,application/xhtml+xml',
+            'Accept': proxyUrl.includes('.json') ? 'application/json' : 'text/html,application/xhtml+xml',
             'User-Agent': 'Mozilla/5.0 (compatible; PromoCodeApp/1.0)'
           }
         });
