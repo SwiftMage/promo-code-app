@@ -18,11 +18,10 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       cleanUrl = cleanUrl.slice(0, -1);
     }
     
-    // Use CORS proxy method (the only reliable method)
-    const jsonUrl = cleanUrl.endsWith('.json') ? cleanUrl : `${cleanUrl}.json`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(jsonUrl)}`;
+    // Use CORS proxy to fetch HTML (not JSON)
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
     
-    console.log('Fetching Reddit content via CORS proxy:', proxyUrl);
+    console.log('Fetching Reddit HTML via CORS proxy:', proxyUrl);
     
     const response = await fetch(proxyUrl);
     
@@ -30,48 +29,73 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       throw new Error(`CORS proxy returned ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
-    console.log('Successfully fetched Reddit content via CORS proxy');
+    const html = await response.text();
+    console.log('Successfully fetched Reddit HTML, length:', html.length);
     
-    // Log the data structure for debugging
-    console.log('Reddit data structure:', JSON.stringify(data, null, 2).substring(0, 500) + '...');
-    
-    // Check if we got valid Reddit data
-    if (!Array.isArray(data) || data.length < 2) {
-      console.error('Invalid Reddit data structure:', data);
-      throw new Error('Invalid Reddit post data - the post may be private, deleted, or the URL is incorrect');
+    // Check if we got HTML
+    if (!html.includes('<html') && !html.includes('<!DOCTYPE')) {
+      console.error('Response doesn\'t appear to be HTML:', html.substring(0, 200));
+      throw new Error('Invalid response - expected HTML but got something else');
     }
     
-    // Reddit JSON structure: data is an array where [0] is the post, [1] is comments
-    const comments: RedditComment[] = data[1]?.data?.children || [];
-    
-    console.log('Found comments:', comments.length);
-    
-    if (comments.length === 0) {
-      console.warn('No comments found in Reddit post');
-    }
-    
+    // Extract usernames and comment text using regex patterns
     const usernames: string[] = [];
     const commentTexts: string[] = [];
     
-    // Extract usernames and comment text from comments
-    function extractData(comment: RedditComment) {
-      if (comment.data?.author && comment.data.author !== '[deleted]') {
-        usernames.push(comment.data.author);
-        if (comment.data.body) {
-          commentTexts.push(comment.data.body);
-        }
-      }
-      
-      // Recursively check replies
-      if (comment.data?.replies?.data?.children) {
-        comment.data.replies.data.children.forEach(extractData);
+    // Pattern to find comment authors - Reddit uses specific class names
+    // Look for patterns like: href="/user/username" or data-author="username"
+    const authorPattern1 = /href="\/user\/([^"\/]+)"/g;
+    const authorPattern2 = /data-author="([^"]+)"/g;
+    const authorPattern3 = /class="[^"]*author[^"]*"[^>]*>([^<]+)</g;
+    
+    // Extract usernames
+    let match;
+    while ((match = authorPattern1.exec(html)) !== null) {
+      if (match[1] && match[1] !== '[deleted]' && match[1] !== 'AutoModerator') {
+        usernames.push(match[1]);
       }
     }
     
-    comments.forEach(extractData);
+    while ((match = authorPattern2.exec(html)) !== null) {
+      if (match[1] && match[1] !== '[deleted]' && match[1] !== 'AutoModerator') {
+        usernames.push(match[1]);
+      }
+    }
     
-    console.log('Extracted usernames:', usernames);
+    // Pattern to find comment text - look for comment body containers
+    // Reddit comment bodies are usually in divs with specific classes
+    const commentPattern1 = /<div[^>]*class="[^"]*md[^"]*"[^>]*>(.*?)<\/div>/gs;
+    const commentPattern2 = /<p[^>]*class="[^"]*comment[^"]*"[^>]*>(.*?)<\/p>/gs;
+    
+    // Extract comment text
+    while ((match = commentPattern1.exec(html)) !== null) {
+      if (match[1]) {
+        // Clean HTML tags from comment text
+        const cleanText = match[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (cleanText.length > 0) {
+          commentTexts.push(cleanText);
+        }
+      }
+    }
+    
+    console.log('Extracted usernames from HTML:', usernames);
+    console.log('Extracted comments:', commentTexts.length);
+    
+    // If we couldn't find comments with the first pattern, try a more general approach
+    if (commentTexts.length === 0) {
+      // Look for any text that might be comments (between common Reddit elements)
+      const generalCommentPattern = /<div[^>]*(?:comment|usertext|md)[^>]*>([\s\S]*?)<\/div>/gi;
+      while ((match = generalCommentPattern.exec(html)) !== null) {
+        if (match[1]) {
+          const cleanText = match[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          if (cleanText.length > 10 && cleanText.length < 10000) { // Reasonable comment length
+            commentTexts.push(cleanText);
+          }
+        }
+      }
+    }
+    
+    console.log('Total unique usernames found:', [...new Set(usernames)].length);
     console.log('Total comment text length:', commentTexts.join(' ').length);
     
     // Remove duplicates and return both usernames and combined comment text
@@ -91,11 +115,14 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     // Provide more specific error messages
     if (error instanceof Error) {
       if (error.message.includes('CORS proxy returned')) {
-        throw new Error(`Reddit fetch failed: ${error.message}. The post may be private or deleted.`);
-      } else if (error.message.includes('Invalid Reddit post data')) {
-        throw error; // Use the specific error message
+        throw new Error(`Unable to access Reddit post. The post may be private or deleted.`);
+      } else if (error.message.includes('Invalid response')) {
+        throw new Error('Unable to read Reddit post content. Please check the URL and try again.');
+      } else if (error.message.includes('not valid JSON')) {
+        // This shouldn't happen anymore, but just in case
+        throw new Error('Reddit server returned unexpected format. Please try again later.');
       } else {
-        throw new Error(`Reddit fetch error: ${error.message}`);
+        throw new Error(`Unable to verify Reddit post: ${error.message}. Please check the Reddit URL and try again.`);
       }
     } else {
       throw new Error('Unknown error occurred while fetching Reddit post');
