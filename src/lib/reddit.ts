@@ -20,6 +20,8 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     
     // Try multiple CORS proxies in order of reliability
     const corsProxies = [
+      // Add .json endpoint as first attempt
+      (url: string) => `https://corsproxy.io/?${encodeURIComponent(url + '.json')}`,
       (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
       (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
       (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
@@ -46,14 +48,54 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
           throw new Error(`Proxy returned ${response.status}: ${response.statusText}`);
         }
         
-        html = await response.text();
+        const contentType = response.headers.get('content-type') || '';
         
-        // Verify we got actual HTML content
-        if (html.length < 1000 || (!html.includes('reddit') && !html.includes('Reddit'))) {
-          throw new Error('Response doesn\'t appear to be Reddit content');
+        // Check if we got JSON (from .json endpoint)
+        if (contentType.includes('application/json') || proxyUrl.includes('.json')) {
+          try {
+            const jsonData = await response.json();
+            console.log('Got JSON response, converting to username list');
+            
+            // Extract usernames from Reddit JSON structure
+            const extractedUsers: string[] = [];
+            
+            // Navigate through Reddit JSON structure
+            if (Array.isArray(jsonData) && jsonData[1]?.data?.children) {
+              const comments = jsonData[1].data.children;
+              
+              function extractFromComment(comment: any) {
+                if (comment.data?.author && comment.data.author !== '[deleted]') {
+                  extractedUsers.push(comment.data.author);
+                }
+                if (comment.data?.replies?.data?.children) {
+                  comment.data.replies.data.children.forEach(extractFromComment);
+                }
+              }
+              
+              comments.forEach(extractFromComment);
+            }
+            
+            if (extractedUsers.length > 0) {
+              console.log('Successfully extracted users from JSON:', extractedUsers.length);
+              return {
+                usernames: [...new Set(extractedUsers)],
+                allCommentText: '' // We don't need comment text for username verification
+              };
+            }
+          } catch (jsonError) {
+            console.log('JSON parsing failed, treating as HTML');
+          }
         }
         
-        console.log('Successfully fetched Reddit HTML, length:', html.length);
+        // Otherwise treat as HTML
+        html = await response.text();
+        
+        // Verify we got actual content
+        if (html.length < 1000) {
+          throw new Error('Response too short to be valid Reddit content');
+        }
+        
+        console.log('Successfully fetched content, length:', html.length);
         break; // Success! Exit the loop
         
       } catch (error) {
