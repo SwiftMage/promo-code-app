@@ -44,16 +44,16 @@ export default function TestReddit() {
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Reddit URL Debug Tool</h1>
+        <h1 className="text-2xl font-bold mb-6 text-gray-900">Reddit URL Debug Tool</h1>
         
         <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <label className="block mb-2 font-medium">Reddit Post URL:</label>
+          <label className="block mb-2 font-medium text-gray-700">Reddit Post URL:</label>
           <input
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://www.reddit.com/r/example/comments/..."
-            className="w-full p-2 border rounded mb-4"
+            className="w-full p-2 border rounded mb-4 bg-white text-gray-900 placeholder-gray-400"
           />
           
           <button
@@ -67,8 +67,8 @@ export default function TestReddit() {
         
         {results && (
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4">Results:</h2>
-            <pre className="bg-gray-100 p-4 rounded overflow-auto text-sm">
+            <h2 className="text-xl font-bold mb-4 text-gray-900">Results:</h2>
+            <pre className="bg-gray-100 p-4 rounded overflow-auto text-sm text-gray-800">
               {JSON.stringify(results, null, 2)}
             </pre>
           </div>
