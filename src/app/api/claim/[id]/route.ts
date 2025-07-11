@@ -77,6 +77,11 @@ export async function POST(
 
     // Check Reddit verification if required
     if (campaign.require_reddit_verification) {
+      console.log('Reddit verification required for campaign:', campaignId);
+      console.log('Reddit post URL:', campaign.reddit_post_url);
+      console.log('Reddit username:', redditUsername);
+      console.log('Funny word:', funnyWord);
+      
       if (!redditUsername && !funnyWord) {
         return NextResponse.json({ error: 'Reddit username or funny word is required for this campaign' }, { status: 400 })
       }
@@ -86,6 +91,7 @@ export async function POST(
       }
 
       try {
+        console.log('Fetching Reddit post content from:', campaign.reddit_post_url);
         const { usernames, allCommentText } = await fetchRedditPostContent(campaign.reddit_post_url)
         
         if (redditUsername) {

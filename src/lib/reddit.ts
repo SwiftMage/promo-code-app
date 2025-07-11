@@ -94,7 +94,12 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     
   } catch (error) {
     console.error('Error fetching Reddit post:', error);
-    throw new Error('Failed to fetch Reddit post content');
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      url: postUrl
+    });
+    throw new Error(`Failed to fetch Reddit post content: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
