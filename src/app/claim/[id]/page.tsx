@@ -203,15 +203,17 @@ export default function ClaimPage({ params }: ClaimPageProps) {
   const copyFunnyWordToClipboard = async () => {
     if (!funnyWord) return
     
+    const textToCopy = `Getting my code from promodistro.link (keyword: ${funnyWord})`
+    
     try {
-      await navigator.clipboard.writeText(funnyWord)
+      await navigator.clipboard.writeText(textToCopy)
       setWordCopied(true)
       setTimeout(() => setWordCopied(false), 2000)
     } catch (err) {
       console.error('Failed to copy funny word: ', err)
       // Fallback for older browsers
       const textArea = document.createElement('textarea')
-      textArea.value = funnyWord
+      textArea.value = textToCopy
       document.body.appendChild(textArea)
       textArea.select()
       try {
@@ -332,9 +334,9 @@ export default function ClaimPage({ params }: ClaimPageProps) {
                 Secret Word to Comment
               </label>
               <div className="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-200 rounded-lg p-4 mb-4">
-                <div className="text-2xl font-bold text-purple-800 mb-2">{funnyWord}</div>
+                <div className="text-lg font-bold text-purple-800 mb-2">Getting my code from promodistro.link (keyword: {funnyWord})</div>
                 <p className="text-sm text-purple-600">
-                  Copy and paste this word in a comment on the Reddit post
+                  Copy and paste this text in a comment on the Reddit post
                 </p>
               </div>
               <div className="flex space-x-2">
@@ -346,7 +348,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
                       : 'bg-purple-600 text-white hover:bg-purple-700 ring-purple-500'
                   }`}
                 >
-                  {wordCopied ? '✓ Copied!' : 'Copy Word'}
+                  {wordCopied ? '✓ Copied!' : 'Copy Text'}
                 </button>
                 <button
                   onClick={() => {
@@ -359,7 +361,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
                 </button>
               </div>
               <p className="mt-2 text-sm text-gray-500">
-                Don&apos;t want to share your username? No problem! Just comment this word in the post.
+                Don&apos;t want to share your username? No problem! Just comment this text in the post.
               </p>
             </div>
           )}
