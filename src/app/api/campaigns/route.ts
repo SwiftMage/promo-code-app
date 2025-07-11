@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Verify reCAPTCHA
     const secretKey = process.env.RECAPTCHA_SECRET_KEY
+    const isDevelopment = process.env.NODE_ENV === 'development' || request.headers.get('host')?.includes('localhost')
     
     if (!secretKey) {
       return NextResponse.json({ 
@@ -28,29 +29,40 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log('Verifying reCAPTCHA token with Google...')
-    const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: `secret=${secretKey}&response=${recaptchaToken}`,
-    })
+    // Skip reCAPTCHA verification in development if using fallback token
+    if (isDevelopment && recaptchaToken === 'fallback_token') {
+      console.log('Development mode: Skipping reCAPTCHA verification for fallback token')
+    } else {
+      console.log('Verifying reCAPTCHA token with Google...')
+      const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `secret=${secretKey}&response=${recaptchaToken}`,
+      })
 
-    const recaptchaData = await recaptchaResponse.json()
-    console.log('reCAPTCHA verification result:', recaptchaData)
-    
-    if (!recaptchaData.success) {
-      console.error('reCAPTCHA verification failed:', recaptchaData)
-      return NextResponse.json({ 
-        error: 'reCAPTCHA verification failed',
-        details: recaptchaData['error-codes'] ? `Error codes: ${recaptchaData['error-codes'].join(', ')}` : 'Please try again'
-      }, { status: 400 })
-    }
+      const recaptchaData = await recaptchaResponse.json()
+      console.log('reCAPTCHA verification result:', recaptchaData)
+      
+      if (!recaptchaData.success) {
+        console.error('reCAPTCHA verification failed:', recaptchaData)
+        
+        // Allow browser-error in development mode only
+        if (isDevelopment && recaptchaData['error-codes']?.includes('browser-error')) {
+          console.warn('Development mode: Allowing browser-error (domain not configured for localhost)')
+        } else {
+          return NextResponse.json({ 
+            error: 'reCAPTCHA verification failed',
+            details: recaptchaData['error-codes'] ? `Error codes: ${recaptchaData['error-codes'].join(', ')}` : 'Please try again'
+          }, { status: 400 })
+        }
+      }
 
-    // Log the reCAPTCHA score for v3 (should be between 0.0 and 1.0)
-    if (recaptchaData.score !== undefined) {
-      console.log(`reCAPTCHA v3 score: ${recaptchaData.score} (action: ${recaptchaData.action})`)
+      // Log the reCAPTCHA score for v3 (should be between 0.0 and 1.0)
+      if (recaptchaData.score !== undefined) {
+        console.log(`reCAPTCHA v3 score: ${recaptchaData.score} (action: ${recaptchaData.action})`)
+      }
     }
 
     const parsedCodes = parseCodesInput(codes)
