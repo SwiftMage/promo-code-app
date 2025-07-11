@@ -5,7 +5,21 @@ import { useState } from 'react'
 export default function TestReddit() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<any>(null)
+  const [results, setResults] = useState<{
+    originalUrl?: string;
+    cleanUrl?: string;
+    attempts?: Array<{
+      method: string;
+      url: string;
+      status: string | number;
+      statusText?: string;
+      success?: boolean;
+      hasComments?: boolean;
+      commentCount?: number;
+      error?: string;
+    }>;
+    error?: string;
+  } | null>(null)
 
   const testReddit = async () => {
     setLoading(true)
@@ -20,7 +34,7 @@ export default function TestReddit() {
       
       const data = await response.json()
       setResults(data)
-    } catch (error) {
+    } catch {
       setResults({ error: 'Failed to test Reddit URL' })
     } finally {
       setLoading(false)

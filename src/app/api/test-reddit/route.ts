@@ -14,7 +14,20 @@ export async function POST(request: NextRequest) {
       cleanUrl = cleanUrl.slice(0, -1);
     }
     
-    const results = {
+    const results: {
+      originalUrl: string;
+      cleanUrl: string;
+      attempts: Array<{
+        method: string;
+        url: string;
+        status: string | number;
+        statusText?: string;
+        success?: boolean;
+        hasComments?: boolean;
+        commentCount?: number;
+        error?: string;
+      }>;
+    } = {
       originalUrl: redditUrl,
       cleanUrl: cleanUrl,
       attempts: []
