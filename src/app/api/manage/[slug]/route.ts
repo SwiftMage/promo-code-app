@@ -57,6 +57,7 @@ export async function GET(
         value: code.value,
         claimedBy: code.claimed_by,
         claimedAt: code.claimed_at,
+        redditUsername: code.reddit_username,
       })),
     })
 

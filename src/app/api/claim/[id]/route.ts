@@ -141,12 +141,19 @@ export async function POST(
       return NextResponse.json({ error: 'All promo codes have been claimed' }, { status: 410 })
     }
 
+    const updateData: any = {
+      claimed_by: visitorId,
+      claimed_at: new Date().toISOString(),
+    }
+    
+    // Store Reddit username if provided
+    if (redditUsername) {
+      updateData.reddit_username = redditUsername
+    }
+
     const { error: updateError } = await supabaseAdmin
       .from('promo_codes')
-      .update({
-        claimed_by: visitorId,
-        claimed_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', availableCode.id)
 
     if (updateError) {

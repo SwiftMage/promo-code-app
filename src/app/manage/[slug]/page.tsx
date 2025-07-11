@@ -21,6 +21,7 @@ interface PromoCode {
   value: string
   claimedBy?: string
   claimedAt?: string
+  redditUsername?: string
 }
 
 export default function ManagePage({ params }: ManagePageProps) {
@@ -55,12 +56,13 @@ export default function ManagePage({ params }: ManagePageProps) {
 
   const exportCodes = () => {
     const csv = [
-      ['Code', 'Status', 'Claimed At', 'Claimed By Hash'],
+      ['Code', 'Status', 'Claimed At', 'Claimed By Hash', 'Reddit Username'],
       ...codes.map(code => [
         code.value,
         code.claimedBy ? 'Claimed' : 'Available',
         code.claimedAt || '',
-        code.claimedBy || ''
+        code.claimedBy || '',
+        code.redditUsername || ''
       ])
     ].map(row => row.join(',')).join('\n')
 
@@ -285,6 +287,9 @@ export default function ManagePage({ params }: ManagePageProps) {
                           Claimed At
                         </th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">
+                          Reddit Username
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">
                           Visitor ID
                         </th>
                       </tr>
@@ -310,6 +315,13 @@ export default function ManagePage({ params }: ManagePageProps) {
                             {code.claimedAt
                               ? new Date(code.claimedAt).toLocaleDateString()
                               : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {code.redditUsername ? (
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                                u/{code.redditUsername}
+                              </span>
+                            ) : '-'}
                           </td>
                           <td className="px-4 py-3 text-gray-600 font-mono text-xs">
                             {code.claimedBy ? code.claimedBy.substring(0, 12) + '...' : '-'}

@@ -21,4 +21,5 @@ export type PromoCode = {
   value: string
   claimed_by?: string
   claimed_at?: string
+  reddit_username?: string
 }
