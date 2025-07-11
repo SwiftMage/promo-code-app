@@ -18,19 +18,54 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       cleanUrl = cleanUrl.slice(0, -1);
     }
     
-    // Use CORS proxy to fetch HTML (not JSON)
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
+    // Try multiple CORS proxies in order of reliability
+    const corsProxies = [
+      (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+      (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
+    ];
     
-    console.log('Fetching Reddit HTML via CORS proxy:', proxyUrl);
+    let html = '';
+    let lastError: Error | null = null;
     
-    const response = await fetch(proxyUrl);
-    
-    if (!response.ok) {
-      throw new Error(`CORS proxy returned ${response.status}: ${response.statusText}`);
+    // Try each proxy until one works
+    for (const proxyFn of corsProxies) {
+      try {
+        const proxyUrl = proxyFn(cleanUrl);
+        console.log('Trying CORS proxy:', proxyUrl.substring(0, 50) + '...');
+        
+        const response = await fetch(proxyUrl, {
+          headers: {
+            'Accept': 'text/html,application/xhtml+xml',
+            'User-Agent': 'Mozilla/5.0 (compatible; PromoCodeApp/1.0)'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Proxy returned ${response.status}: ${response.statusText}`);
+        }
+        
+        html = await response.text();
+        
+        // Verify we got actual HTML content
+        if (html.length < 1000 || (!html.includes('reddit') && !html.includes('Reddit'))) {
+          throw new Error('Response doesn\'t appear to be Reddit content');
+        }
+        
+        console.log('Successfully fetched Reddit HTML, length:', html.length);
+        break; // Success! Exit the loop
+        
+      } catch (error) {
+        lastError = error as Error;
+        console.error('Proxy failed:', error);
+        continue; // Try next proxy
+      }
     }
     
-    const html = await response.text();
-    console.log('Successfully fetched Reddit HTML, length:', html.length);
+    if (!html || html.length === 0) {
+      throw lastError || new Error('All CORS proxies failed');
+    }
     
     // Check if we got HTML
     if (!html.includes('<html') && !html.includes('<!DOCTYPE')) {
@@ -114,15 +149,16 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     
     // Provide more specific error messages
     if (error instanceof Error) {
-      if (error.message.includes('CORS proxy returned')) {
-        throw new Error(`Unable to access Reddit post. The post may be private or deleted.`);
+      if (error.message.includes('All CORS proxies failed')) {
+        throw new Error('Unable to access Reddit post. The Reddit servers may be temporarily unavailable. Please try again in a few moments.');
+      } else if (error.message.includes('Proxy returned')) {
+        throw new Error('Unable to access Reddit post. The post may be private, deleted, or Reddit may be blocking access.');
       } else if (error.message.includes('Invalid response')) {
-        throw new Error('Unable to read Reddit post content. Please check the URL and try again.');
-      } else if (error.message.includes('not valid JSON')) {
-        // This shouldn't happen anymore, but just in case
-        throw new Error('Reddit server returned unexpected format. Please try again later.');
+        throw new Error('Unable to read Reddit post content. Please verify the URL is correct and the post is publicly accessible.');
+      } else if (error.message.includes('doesn\'t appear to be Reddit content')) {
+        throw new Error('The URL doesn\'t seem to point to a valid Reddit post. Please check the URL and try again.');
       } else {
-        throw new Error(`Unable to verify Reddit post: ${error.message}. Please check the Reddit URL and try again.`);
+        throw new Error(`Unable to verify Reddit post. Please check that the Reddit post is public and try again.`);
       }
     } else {
       throw new Error('Unknown error occurred while fetching Reddit post');
