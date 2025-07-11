@@ -106,7 +106,39 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     }
     
     if (!html || html.length === 0) {
-      throw lastError || new Error('All CORS proxies failed');
+      console.log('All CORS proxies failed, trying server-side fetch...');
+      
+      // Fallback to server-side fetch
+      try {
+        const response = await fetch('/api/reddit-fetch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: cleanUrl }),
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.details || error.error || 'Server fetch failed');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.usernames) {
+          console.log('Server-side fetch successful, found users:', data.usernames.length);
+          return {
+            usernames: data.usernames,
+            allCommentText: data.allCommentText || ''
+          };
+        }
+        
+        throw new Error('Server returned invalid data');
+        
+      } catch (serverError) {
+        console.error('Server-side fetch also failed:', serverError);
+        throw new Error('Unable to fetch Reddit data through any method');
+      }
     }
     
     // Check if we got HTML
