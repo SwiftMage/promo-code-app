@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import ReCAPTCHA from 'react-google-recaptcha'
+import { useEffect, useState } from 'react'
+import { ReCaptchaProvider, useReCaptcha } from 'next-recaptcha-v3'
 import AdSense from '@/components/AdSense'
 import { generateFunnyWord } from '@/lib/funny-words'
 
@@ -11,7 +11,7 @@ interface ClaimPageProps {
   }>
 }
 
-export default function ClaimPage({ params }: ClaimPageProps) {
+function ClaimPageComponent({ params }: ClaimPageProps) {
   const [code, setCode] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +24,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
   const [funnyWord, setFunnyWord] = useState('')
   const [wordCopied, setWordCopied] = useState(false)
   const [step, setStep] = useState<'recaptcha' | 'reddit' | 'complete'>('recaptcha')
-  const recaptchaRef = useRef<ReCAPTCHA>(null)
+  const { executeRecaptcha } = useReCaptcha()
 
   useEffect(() => {
     const getCampaignId = async () => {
@@ -45,27 +45,36 @@ export default function ClaimPage({ params }: ClaimPageProps) {
     getCampaignId()
   }, [params])
 
-  const handleRecaptchaChange = async (token: string | null) => {
-    if (!token || !campaignId) return
+  const handleRecaptchaVerification = async () => {
+    if (!campaignId) return
     
     setLoading(true)
     setError(null)
     
-    if (requiresRedditVerification) {
-      // Just move to Reddit verification step
-      setStep('reddit')
-      setLoading(false)
-      return
-    }
-    
-    // Proceed with normal claim
     try {
+      // Execute reCAPTCHA v3
+      const recaptchaToken = await executeRecaptcha('claim_code')
+      
+      if (!recaptchaToken) {
+        setError('reCAPTCHA verification failed')
+        setLoading(false)
+        return
+      }
+      
+      if (requiresRedditVerification) {
+        // Just move to Reddit verification step
+        setStep('reddit')
+        setLoading(false)
+        return
+      }
+      
+      // Proceed with normal claim
       const response = await fetch(`/api/claim/${campaignId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ recaptchaToken: token }),
+        body: JSON.stringify({ recaptchaToken }),
       })
       
       const data = await response.json()
@@ -76,11 +85,9 @@ export default function ClaimPage({ params }: ClaimPageProps) {
         setStep('complete')
       } else {
         setError(data.error || 'Failed to claim code')
-        recaptchaRef.current?.reset()
       }
     } catch {
       setError('Network error occurred')
-      recaptchaRef.current?.reset()
     } finally {
       setLoading(false)
     }
@@ -95,13 +102,22 @@ export default function ClaimPage({ params }: ClaimPageProps) {
     setError(null)
     
     try {
+      // Execute reCAPTCHA v3 again for reddit verification
+      const recaptchaToken = await executeRecaptcha('reddit_verification')
+      
+      if (!recaptchaToken) {
+        setError('reCAPTCHA verification failed')
+        setLoading(false)
+        return
+      }
+      
       const response = await fetch(`/api/claim/${campaignId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          recaptchaToken: 'verified', // reCAPTCHA already passed
+          recaptchaToken,
           redditUsername: verificationMode === 'username' ? redditUsername.trim() : undefined,
           funnyWord: verificationMode === 'funnyword' ? funnyWord : undefined
         }),
@@ -169,15 +185,16 @@ export default function ClaimPage({ params }: ClaimPageProps) {
             Verify You&apos;re Human
           </h1>
           <p className="text-gray-600 mb-8">
-            Please complete the verification below to claim your promo code
+            Click the button below to verify and claim your promo code
           </p>
           <div className="inline-block">
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
-              onChange={handleRecaptchaChange}
-              theme="light"
-            />
+            <button
+              onClick={handleRecaptchaVerification}
+              disabled={loading}
+              className="bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {loading ? 'Verifying...' : 'Verify & Claim Code'}
+            </button>
           </div>
           {loading && (
             <div className="mt-4">
@@ -377,4 +394,12 @@ export default function ClaimPage({ params }: ClaimPageProps) {
   }
 
   return null
+}
+
+export default function ClaimPage({ params }: ClaimPageProps) {
+  return (
+    <ReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}>
+      <ClaimPageComponent params={params} />
+    </ReCaptchaProvider>
+  )
 }

@@ -1,29 +1,22 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import ReCAPTCHA from 'react-google-recaptcha'
+import { ReCaptchaProvider, useReCaptcha } from 'next-recaptcha-v3'
 
-export default function CodeInputForm() {
+function CodeInputFormComponent() {
   const [codes, setCodes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const [requireRedditVerification, setRequireRedditVerification] = useState(false)
   const [redditPostUrl, setRedditPostUrl] = useState('')
-  const recaptchaRef = useRef<ReCAPTCHA>(null)
+  const { executeRecaptcha } = useReCaptcha()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-
-    if (!recaptchaToken) {
-      setError('Please complete the reCAPTCHA verification')
-      setLoading(false)
-      return
-    }
 
     if (requireRedditVerification && !redditPostUrl.trim()) {
       setError('Please provide a Reddit post URL for verification')
@@ -32,6 +25,15 @@ export default function CodeInputForm() {
     }
 
     try {
+      // Execute reCAPTCHA v3
+      const recaptchaToken = await executeRecaptcha('create_campaign')
+      
+      if (!recaptchaToken) {
+        setError('reCAPTCHA verification failed')
+        setLoading(false)
+        return
+      }
+
       const response = await fetch('/api/campaigns', {
         method: 'POST',
         headers: {
@@ -56,17 +58,9 @@ export default function CodeInputForm() {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
-      // Reset reCAPTCHA
-      if (recaptchaRef.current) {
-        recaptchaRef.current.reset()
-        setRecaptchaToken(null)
-      }
     }
   }
 
-  const handleRecaptchaChange = (token: string | null) => {
-    setRecaptchaToken(token)
-  }
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-8">
@@ -134,20 +128,11 @@ PROMO2024"
         </div>
 
         <div>
-          {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
-              onChange={handleRecaptchaChange}
-              theme="light"
-            />
-          ) : (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <p className="text-yellow-800 text-sm">
-                reCAPTCHA site key not configured. Current key: {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || 'undefined'}
-              </p>
-            </div>
-          )}
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <p className="text-blue-800 text-sm">
+              🔒 This form is protected by reCAPTCHA v3 and will verify automatically when you submit.
+            </p>
+          </div>
         </div>
 
         {error && (
@@ -158,12 +143,20 @@ PROMO2024"
 
         <button
           type="submit"
-          disabled={loading || !codes.trim() || !recaptchaToken}
+          disabled={loading || !codes.trim()}
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
           {loading ? 'Creating Campaign...' : 'Create Campaign'}
         </button>
       </form>
     </div>
+  )
+}
+
+export default function CodeInputForm() {
+  return (
+    <ReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}>
+      <CodeInputFormComponent />
+    </ReCaptchaProvider>
   )
 }
