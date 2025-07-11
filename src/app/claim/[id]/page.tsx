@@ -240,7 +240,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
                 id="redditUsername"
                 value={redditUsername}
                 onChange={(e) => setRedditUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
                 placeholder="your_reddit_username"
                 required
               />
