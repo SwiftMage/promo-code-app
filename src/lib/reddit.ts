@@ -91,23 +91,40 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     const usernames: string[] = [];
     const commentTexts: string[] = [];
     
-    // Pattern to find comment authors - Reddit uses specific class names
-    // Look for patterns like: href="/user/username" or data-author="username"
-    const authorPattern1 = /href="\/user\/([^"\/]+)"/g;
-    const authorPattern2 = /data-author="([^"]+)"/g;
-    const authorPattern3 = /class="[^"]*author[^"]*"[^>]*>([^<]+)</g;
+    // Comprehensive patterns to find comment authors in various Reddit HTML formats
+    const authorPatterns = [
+      // Standard Reddit patterns
+      /href="\/user\/([^"\/]+)"/g,
+      /data-author="([^"]+)"/g,
+      /class="[^"]*author[^"]*"[^>]*>([^<]+)</g,
+      
+      // New Reddit patterns
+      /href="https?:\/\/www\.reddit\.com\/user\/([^"\/]+)"/g,
+      /href="\/u\/([^"\/]+)"/g,
+      /data-username="([^"]+)"/g,
+      
+      // Reddit redesign patterns
+      /"author":"([^"]+)"/g,
+      /"authorUsername":"([^"]+)"/g,
+      /Comment by u\/([^\s]+)/g,
+      
+      // Mobile Reddit patterns
+      /class="[^"]*Comment__author[^"]*"[^>]*>([^<]+)</g,
+      /<span[^>]*class="[^"]*author[^"]*"[^>]*>u\/([^<]+)</g,
+      
+      // JSON-LD structured data
+      /"author":\s*{\s*"name":\s*"([^"]+)"/g,
+    ];
     
-    // Extract usernames
-    let match;
-    while ((match = authorPattern1.exec(html)) !== null) {
-      if (match[1] && match[1] !== '[deleted]' && match[1] !== 'AutoModerator') {
-        usernames.push(match[1]);
-      }
-    }
-    
-    while ((match = authorPattern2.exec(html)) !== null) {
-      if (match[1] && match[1] !== '[deleted]' && match[1] !== 'AutoModerator') {
-        usernames.push(match[1]);
+    // Try all patterns
+    for (const pattern of authorPatterns) {
+      let match;
+      pattern.lastIndex = 0; // Reset regex state
+      while ((match = pattern.exec(html)) !== null) {
+        const username = match[1].replace(/^u\//, ''); // Remove u/ prefix if present
+        if (username && username !== '[deleted]' && username !== 'AutoModerator' && !username.includes(' ')) {
+          usernames.push(username);
+        }
       }
     }
     
@@ -144,27 +161,6 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       }
     }
     
-    // Also try to find usernames in newer Reddit HTML structure
-    if (usernames.length === 0) {
-      console.log('No usernames found with standard patterns, trying alternative patterns...');
-      
-      // Try newer Reddit structure patterns
-      const altPatterns = [
-        /class="[^"]*author[^"]*"[^>]*href="[^"]*\/user\/([^"\/]+)"/g,
-        /data-username="([^"]+)"/g,
-        /<a[^>]*href="\/user\/([^"\/]+)"[^>]*class="[^"]*author/g,
-        /by\s+<a[^>]*href="[^"]*\/user\/([^"\/]+)"/g,
-      ];
-      
-      for (const pattern of altPatterns) {
-        let match;
-        while ((match = pattern.exec(html)) !== null) {
-          if (match[1] && match[1] !== '[deleted]' && match[1] !== 'AutoModerator') {
-            usernames.push(match[1]);
-          }
-        }
-      }
-    }
     
     const uniqueUsernames = [...new Set(usernames)];
     console.log('Total unique usernames found:', uniqueUsernames.length);
