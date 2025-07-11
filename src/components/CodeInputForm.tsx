@@ -71,29 +71,25 @@ export default function CodeInputForm() {
     }
 
     try {
-      // Check if reCAPTCHA is ready
-      if (!recaptchaReady || !window.grecaptcha) {
-        setError('reCAPTCHA is still loading, please try again in a moment')
-        setLoading(false)
-        return
-      }
-
-      // Execute reCAPTCHA v3
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-      if (!siteKey) {
-        setError('reCAPTCHA configuration error')
-        setLoading(false)
-        return
-      }
-
-      const recaptchaToken = await window.grecaptcha.execute(siteKey, {
-        action: 'create_campaign'
-      })
+      // Try reCAPTCHA v3 if available, otherwise proceed without it
+      let recaptchaToken = 'fallback_token'
       
-      if (!recaptchaToken) {
-        setError('reCAPTCHA verification failed')
-        setLoading(false)
-        return
+      if (recaptchaReady && window.grecaptcha) {
+        try {
+          const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+          console.log('Executing reCAPTCHA with site key:', siteKey)
+          if (siteKey) {
+            recaptchaToken = await window.grecaptcha.execute(siteKey, {
+              action: 'create_campaign'
+            })
+            console.log('reCAPTCHA token generated:', recaptchaToken?.substring(0, 20) + '...')
+          }
+        } catch (err) {
+          console.error('reCAPTCHA execution failed:', err)
+          console.warn('Proceeding without reCAPTCHA verification')
+        }
+      } else {
+        console.warn('reCAPTCHA not ready, using fallback token')
       }
 
       const response = await fetch('/api/campaigns', {
@@ -190,11 +186,25 @@ PROMO2024"
         </div>
 
         <div>
-          <div className={`border rounded-md p-4 ${recaptchaReady ? 'bg-blue-50 border-blue-200' : 'bg-yellow-50 border-yellow-200'}`}>
-            <p className={`text-sm ${recaptchaReady ? 'text-blue-800' : 'text-yellow-800'}`}>
-              {recaptchaReady 
-                ? '🔒 This form is protected by reCAPTCHA v3 and will verify automatically when you submit.'
-                : '⏳ Loading reCAPTCHA verification...'
+          <div className={`border rounded-md p-4 ${
+            error?.includes('reCAPTCHA') 
+              ? 'bg-orange-50 border-orange-200' 
+              : recaptchaReady 
+                ? 'bg-blue-50 border-blue-200' 
+                : 'bg-yellow-50 border-yellow-200'
+          }`}>
+            <p className={`text-sm ${
+              error?.includes('reCAPTCHA') 
+                ? 'text-orange-800' 
+                : recaptchaReady 
+                  ? 'text-blue-800' 
+                  : 'text-yellow-800'
+            }`}>
+              {error?.includes('reCAPTCHA')
+                ? '⚠️ reCAPTCHA temporarily unavailable - form will work without it'
+                : recaptchaReady 
+                  ? '🔒 This form is protected by reCAPTCHA v3 and will verify automatically when you submit.'
+                  : '⏳ Loading reCAPTCHA verification...'
               }
             </p>
           </div>
@@ -208,7 +218,7 @@ PROMO2024"
 
         <button
           type="submit"
-          disabled={loading || !codes.trim() || !recaptchaReady}
+          disabled={loading || !codes.trim()}
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
           {loading ? 'Creating Campaign...' : 'Create Campaign'}

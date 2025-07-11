@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
+    console.log('Verifying reCAPTCHA token with Google...')
     const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
       headers: {
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
     })
 
     const recaptchaData = await recaptchaResponse.json()
+    console.log('reCAPTCHA verification result:', recaptchaData)
     
     if (!recaptchaData.success) {
       console.error('reCAPTCHA verification failed:', recaptchaData)
@@ -44,6 +46,11 @@ export async function POST(request: NextRequest) {
         error: 'reCAPTCHA verification failed',
         details: recaptchaData['error-codes'] ? `Error codes: ${recaptchaData['error-codes'].join(', ')}` : 'Please try again'
       }, { status: 400 })
+    }
+
+    // Log the reCAPTCHA score for v3 (should be between 0.0 and 1.0)
+    if (recaptchaData.score !== undefined) {
+      console.log(`reCAPTCHA v3 score: ${recaptchaData.score} (action: ${recaptchaData.action})`)
     }
 
     const parsedCodes = parseCodesInput(codes)
