@@ -141,7 +141,11 @@ export async function POST(
       return NextResponse.json({ error: 'All promo codes have been claimed' }, { status: 410 })
     }
 
-    const updateData: any = {
+    const updateData: {
+      claimed_by: string;
+      claimed_at: string;
+      reddit_username?: string;
+    } = {
       claimed_by: visitorId,
       claimed_at: new Date().toISOString(),
     }
