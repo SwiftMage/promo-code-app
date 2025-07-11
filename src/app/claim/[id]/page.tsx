@@ -52,6 +52,13 @@ function ClaimPageComponent({ params }: ClaimPageProps) {
     setError(null)
     
     try {
+      // Check if executeRecaptcha is available
+      if (!executeRecaptcha) {
+        setError('reCAPTCHA is still loading, please try again in a moment')
+        setLoading(false)
+        return
+      }
+
       // Execute reCAPTCHA v3
       const recaptchaToken = await executeRecaptcha('claim_code')
       
@@ -102,6 +109,13 @@ function ClaimPageComponent({ params }: ClaimPageProps) {
     setError(null)
     
     try {
+      // Check if executeRecaptcha is available
+      if (!executeRecaptcha) {
+        setError('reCAPTCHA is still loading, please try again in a moment')
+        setLoading(false)
+        return
+      }
+
       // Execute reCAPTCHA v3 again for reddit verification
       const recaptchaToken = await executeRecaptcha('reddit_verification')
       

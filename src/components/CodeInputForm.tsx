@@ -25,6 +25,13 @@ function CodeInputFormComponent() {
     }
 
     try {
+      // Check if executeRecaptcha is available
+      if (!executeRecaptcha) {
+        setError('reCAPTCHA is still loading, please try again in a moment')
+        setLoading(false)
+        return
+      }
+
       // Execute reCAPTCHA v3
       const recaptchaToken = await executeRecaptcha('create_campaign')
       
