@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function TestPage() {
   const [loading, setLoading] = useState(true)
@@ -156,13 +157,13 @@ export default function TestPage() {
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Quick Navigation</h2>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <a
+              <Link
                 href="/"
-                className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors block"
               >
                 <div className="text-2xl mb-2">🏠</div>
                 <div className="text-sm font-medium text-blue-900">Home</div>
-              </a>
+              </Link>
               
               <a
                 href="/admin/dashboard"

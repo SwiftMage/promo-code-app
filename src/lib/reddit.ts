@@ -1,14 +1,3 @@
-type RedditComment = {
-  data?: {
-    author?: string;
-    body?: string;
-    replies?: {
-      data?: {
-        children?: RedditComment[];
-      };
-    };
-  };
-};
 
 export async function fetchRedditPostContent(postUrl: string): Promise<{usernames: string[], allCommentText: string}> {
   try {
@@ -29,7 +18,6 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     ];
     
     let html = '';
-    let lastError: Error | null = null;
     
     // Try each proxy until one works
     for (const proxyFn of corsProxies) {
@@ -63,12 +51,15 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
             if (Array.isArray(jsonData) && jsonData[1]?.data?.children) {
               const comments = jsonData[1].data.children;
               
-              function extractFromComment(comment: any) {
-                if (comment.data?.author && comment.data.author !== '[deleted]') {
-                  extractedUsers.push(comment.data.author);
+              function extractFromComment(comment: Record<string, unknown>) {
+                const data = comment.data as Record<string, unknown>;
+                if (data?.author && typeof data.author === 'string' && data.author !== '[deleted]') {
+                  extractedUsers.push(data.author);
                 }
-                if (comment.data?.replies?.data?.children) {
-                  comment.data.replies.data.children.forEach(extractFromComment);
+                const replies = data?.replies as Record<string, unknown>;
+                const repliesData = replies?.data as Record<string, unknown>;
+                if (repliesData?.children && Array.isArray(repliesData.children)) {
+                  repliesData.children.forEach(extractFromComment);
                 }
               }
               
@@ -82,7 +73,7 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
                 allCommentText: '' // We don't need comment text for username verification
               };
             }
-          } catch (jsonError) {
+          } catch {
             console.log('JSON parsing failed, treating as HTML');
           }
         }
@@ -99,7 +90,6 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
         break; // Success! Exit the loop
         
       } catch (error) {
-        lastError = error as Error;
         console.error('Proxy failed:', error);
         continue; // Try next proxy
       }
@@ -204,10 +194,10 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     
     // Pattern to find comment text - look for comment body containers
     // Reddit comment bodies are usually in divs with specific classes
-    const commentPattern1 = /<div[^>]*class="[^"]*md[^"]*"[^>]*>(.*?)<\/div>/gs;
-    const commentPattern2 = /<p[^>]*class="[^"]*comment[^"]*"[^>]*>(.*?)<\/p>/gs;
+    const commentPattern1 = /<div[^>]*class="[^"]*md[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
     
     // Extract comment text
+    let match: RegExpExecArray | null;
     while ((match = commentPattern1.exec(html)) !== null) {
       if (match[1]) {
         // Clean HTML tags from comment text
@@ -224,7 +214,7 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
     // If we couldn't find comments with the first pattern, try a more general approach
     if (commentTexts.length === 0) {
       // Look for any text that might be comments (between common Reddit elements)
-      const generalCommentPattern = /<div[^>]*(?:comment|usertext|md)[^>]*>([\s\S]*?)<\/div>/gi;
+      const generalCommentPattern = /<div[^>]*(?:comment|usertext|md)[^>]*>([\s\S]*?)<\/div>/g;
       while ((match = generalCommentPattern.exec(html)) !== null) {
         if (match[1]) {
           const cleanText = match[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();

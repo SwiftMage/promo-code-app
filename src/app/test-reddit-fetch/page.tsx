@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 export default function TestRedditFetch() {
   const [url, setUrl] = useState('https://www.reddit.com/r/macapps/comments/1lu141s/updated_awesome_copy_giving_away_100_free_promo/')
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(false)
 
   const testFetch = async () => {
@@ -76,7 +76,7 @@ export default function TestRedditFetch() {
                     ⚠️ BETO123USA not found in extracted usernames
                   </p>
                   <p className="text-yellow-600 text-sm mt-1">
-                    Found {result.usernamesFound} usernames total
+                    Found {result.usernamesFound as number} usernames total
                   </p>
                 </div>
               )}

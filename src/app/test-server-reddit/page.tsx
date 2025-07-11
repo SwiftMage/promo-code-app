@@ -5,7 +5,7 @@ import { useState } from 'react'
 export default function TestServerReddit() {
   const [url, setUrl] = useState('https://www.reddit.com/r/macapps/comments/1lu141s/updated_awesome_copy_giving_away_100_free_promo/')
   const [username, setUsername] = useState('BETO123USA')
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(false)
 
   const testServerFetch = async () => {
@@ -100,15 +100,15 @@ export default function TestServerReddit() {
                 </pre>
               </div>
               
-              {result.success && (
+              {result.success === true && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-white border border-gray-200 rounded-md p-4">
                     <h4 className="font-medium text-gray-900 mb-2">Summary</h4>
                     <p className="text-sm text-gray-600">
-                      Total usernames found: <span className="font-semibold">{result.totalUsernames}</span>
+                      Total usernames found: <span className="font-semibold">{result.totalUsernames as number}</span>
                     </p>
                     <p className="text-sm text-gray-600">
-                      Comment text length: <span className="font-semibold">{result.allCommentText?.length || 0}</span>
+                      Comment text length: <span className="font-semibold">{(result.allCommentText as string)?.length || 0}</span>
                     </p>
                   </div>
                   
@@ -133,14 +133,14 @@ export default function TestServerReddit() {
                 </div>
               )}
 
-              {result.success && result.usernames && (
+              {result.success === true && Array.isArray(result.usernames) && (
                 <div className="bg-white border border-gray-200 rounded-md p-4">
                   <h4 className="font-medium text-gray-900 mb-2">
-                    All Usernames ({result.usernames.length})
+                    All Usernames ({(result.usernames as string[]).length})
                   </h4>
                   <div className="max-h-40 overflow-y-auto">
                     <div className="flex flex-wrap gap-2">
-                      {result.usernames.map((user: string, index: number) => (
+                      {(result.usernames as string[]).map((user: string, index: number) => (
                         <span
                           key={index}
                           className={`inline-block px-2 py-1 text-xs rounded ${
@@ -157,14 +157,14 @@ export default function TestServerReddit() {
                 </div>
               )}
               
-              {result.error && (
+              {result.error !== undefined && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-4">
                   <p className="text-red-800 font-medium">
-                    ❌ Error: {result.error}
+                    ❌ Error: {result.error as string}
                   </p>
-                  {result.details && (
+                  {result.details !== undefined && (
                     <p className="text-red-600 text-sm mt-1">
-                      Details: {result.details}
+                      Details: {result.details as string}
                     </p>
                   )}
                 </div>

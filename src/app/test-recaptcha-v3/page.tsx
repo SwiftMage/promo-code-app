@@ -12,7 +12,7 @@ declare global {
 }
 
 export default function TestRecaptchaV3() {
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(false)
   const [recaptchaReady, setRecaptchaReady] = useState(false)
 
@@ -158,13 +158,13 @@ export default function TestRecaptchaV3() {
                 {JSON.stringify(result, null, 2)}
               </pre>
               
-              {result.success && result.score !== undefined && (
+              {result.success === true && typeof result.score === 'number' && (
                 <div className="mt-4 p-3 rounded-md bg-blue-50 border border-blue-200">
                   <p className="text-blue-800 font-medium">
                     ✅ reCAPTCHA v3 is working! Score: {result.score}
                   </p>
                   <p className="text-blue-600 text-sm mt-1">
-                    Score interpretation: {result.score >= 0.7 ? 'Human-like' : result.score >= 0.3 ? 'Suspicious' : 'Bot-like'}
+                    Score interpretation: {(result.score as number) >= 0.7 ? 'Human-like' : (result.score as number) >= 0.3 ? 'Suspicious' : 'Bot-like'}
                   </p>
                 </div>
               )}
@@ -174,9 +174,9 @@ export default function TestRecaptchaV3() {
                   <p className="text-red-800 font-medium">
                     ❌ reCAPTCHA verification failed
                   </p>
-                  {result.errorCodes && (
+                  {Array.isArray(result.errorCodes) && (
                     <p className="text-red-600 text-sm mt-1">
-                      Error codes: {result.errorCodes.join(', ')}
+                      Error codes: {(result.errorCodes as string[]).join(', ')}
                     </p>
                   )}
                 </div>

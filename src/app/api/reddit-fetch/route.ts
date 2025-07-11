@@ -40,16 +40,19 @@ export async function POST(request: NextRequest) {
     if (Array.isArray(data) && data[1]?.data?.children) {
       const comments = data[1].data.children
       
-      function extractFromComment(comment: any) {
-        if (comment.data?.author && comment.data.author !== '[deleted]' && comment.data.author !== 'AutoModerator') {
-          usernames.push(comment.data.author)
-          if (comment.data.body) {
-            commentTexts.push(comment.data.body)
+      function extractFromComment(comment: Record<string, unknown>) {
+        const data = comment.data as Record<string, unknown>
+        if (data?.author && typeof data.author === 'string' && data.author !== '[deleted]' && data.author !== 'AutoModerator') {
+          usernames.push(data.author)
+          if (data.body && typeof data.body === 'string') {
+            commentTexts.push(data.body)
           }
         }
         // Recursively check replies
-        if (comment.data?.replies?.data?.children) {
-          comment.data.replies.data.children.forEach(extractFromComment)
+        const replies = data?.replies as Record<string, unknown>
+        const repliesData = replies?.data as Record<string, unknown>
+        if (repliesData?.children && Array.isArray(repliesData.children)) {
+          repliesData.children.forEach(extractFromComment)
         }
       }
       
