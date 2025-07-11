@@ -1,17 +1,48 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ReCaptchaProvider, useReCaptcha } from 'next-recaptcha-v3'
 
-function CodeInputFormComponent() {
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void
+      execute: (siteKey: string, options: { action: string }) => Promise<string>
+    }
+  }
+}
+
+export default function CodeInputForm() {
   const [codes, setCodes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [requireRedditVerification, setRequireRedditVerification] = useState(false)
   const [redditPostUrl, setRedditPostUrl] = useState('')
-  const { executeRecaptcha } = useReCaptcha()
+  const [recaptchaReady, setRecaptchaReady] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    // Load reCAPTCHA v3 script
+    const loadRecaptcha = () => {
+      if (window.grecaptcha) {
+        setRecaptchaReady(true)
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`
+      script.onload = () => {
+        window.grecaptcha.ready(() => {
+          setRecaptchaReady(true)
+        })
+      }
+      document.head.appendChild(script)
+    }
+
+    if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+      loadRecaptcha()
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,15 +56,24 @@ function CodeInputFormComponent() {
     }
 
     try {
-      // Check if executeRecaptcha is available
-      if (!executeRecaptcha) {
+      // Check if reCAPTCHA is ready
+      if (!recaptchaReady || !window.grecaptcha) {
         setError('reCAPTCHA is still loading, please try again in a moment')
         setLoading(false)
         return
       }
 
       // Execute reCAPTCHA v3
-      const recaptchaToken = await executeRecaptcha('create_campaign')
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+      if (!siteKey) {
+        setError('reCAPTCHA configuration error')
+        setLoading(false)
+        return
+      }
+
+      const recaptchaToken = await window.grecaptcha.execute(siteKey, {
+        action: 'create_campaign'
+      })
       
       if (!recaptchaToken) {
         setError('reCAPTCHA verification failed')
@@ -135,9 +175,12 @@ PROMO2024"
         </div>
 
         <div>
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <p className="text-blue-800 text-sm">
-              🔒 This form is protected by reCAPTCHA v3 and will verify automatically when you submit.
+          <div className={`border rounded-md p-4 ${recaptchaReady ? 'bg-blue-50 border-blue-200' : 'bg-yellow-50 border-yellow-200'}`}>
+            <p className={`text-sm ${recaptchaReady ? 'text-blue-800' : 'text-yellow-800'}`}>
+              {recaptchaReady 
+                ? '🔒 This form is protected by reCAPTCHA v3 and will verify automatically when you submit.'
+                : '⏳ Loading reCAPTCHA verification...'
+              }
             </p>
           </div>
         </div>
@@ -150,20 +193,12 @@ PROMO2024"
 
         <button
           type="submit"
-          disabled={loading || !codes.trim()}
+          disabled={loading || !codes.trim() || !recaptchaReady}
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
           {loading ? 'Creating Campaign...' : 'Create Campaign'}
         </button>
       </form>
     </div>
-  )
-}
-
-export default function CodeInputForm() {
-  return (
-    <ReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}>
-      <CodeInputFormComponent />
-    </ReCaptchaProvider>
   )
 }

@@ -1,9 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ReCaptchaProvider, useReCaptcha } from 'next-recaptcha-v3'
 import AdSense from '@/components/AdSense'
 import { generateFunnyWord } from '@/lib/funny-words'
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void
+      execute: (siteKey: string, options: { action: string }) => Promise<string>
+    }
+  }
+}
 
 interface ClaimPageProps {
   params: Promise<{
@@ -11,7 +19,7 @@ interface ClaimPageProps {
   }>
 }
 
-function ClaimPageComponent({ params }: ClaimPageProps) {
+export default function ClaimPage({ params }: ClaimPageProps) {
   const [code, setCode] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,9 +32,30 @@ function ClaimPageComponent({ params }: ClaimPageProps) {
   const [funnyWord, setFunnyWord] = useState('')
   const [wordCopied, setWordCopied] = useState(false)
   const [step, setStep] = useState<'recaptcha' | 'reddit' | 'complete'>('recaptcha')
-  const { executeRecaptcha } = useReCaptcha()
+  const [recaptchaReady, setRecaptchaReady] = useState(false)
 
   useEffect(() => {
+    // Load reCAPTCHA v3 script
+    const loadRecaptcha = () => {
+      if (window.grecaptcha) {
+        setRecaptchaReady(true)
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`
+      script.onload = () => {
+        window.grecaptcha.ready(() => {
+          setRecaptchaReady(true)
+        })
+      }
+      document.head.appendChild(script)
+    }
+
+    if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+      loadRecaptcha()
+    }
+
     const getCampaignId = async () => {
       const resolvedParams = await params
       setCampaignId(resolvedParams.id)
@@ -52,15 +81,24 @@ function ClaimPageComponent({ params }: ClaimPageProps) {
     setError(null)
     
     try {
-      // Check if executeRecaptcha is available
-      if (!executeRecaptcha) {
+      // Check if reCAPTCHA is ready
+      if (!recaptchaReady || !window.grecaptcha) {
         setError('reCAPTCHA is still loading, please try again in a moment')
         setLoading(false)
         return
       }
 
       // Execute reCAPTCHA v3
-      const recaptchaToken = await executeRecaptcha('claim_code')
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+      if (!siteKey) {
+        setError('reCAPTCHA configuration error')
+        setLoading(false)
+        return
+      }
+
+      const recaptchaToken = await window.grecaptcha.execute(siteKey, {
+        action: 'claim_code'
+      })
       
       if (!recaptchaToken) {
         setError('reCAPTCHA verification failed')
@@ -109,15 +147,24 @@ function ClaimPageComponent({ params }: ClaimPageProps) {
     setError(null)
     
     try {
-      // Check if executeRecaptcha is available
-      if (!executeRecaptcha) {
+      // Check if reCAPTCHA is ready
+      if (!recaptchaReady || !window.grecaptcha) {
         setError('reCAPTCHA is still loading, please try again in a moment')
         setLoading(false)
         return
       }
 
       // Execute reCAPTCHA v3 again for reddit verification
-      const recaptchaToken = await executeRecaptcha('reddit_verification')
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+      if (!siteKey) {
+        setError('reCAPTCHA configuration error')
+        setLoading(false)
+        return
+      }
+
+      const recaptchaToken = await window.grecaptcha.execute(siteKey, {
+        action: 'reddit_verification'
+      })
       
       if (!recaptchaToken) {
         setError('reCAPTCHA verification failed')
@@ -204,10 +251,10 @@ function ClaimPageComponent({ params }: ClaimPageProps) {
           <div className="inline-block">
             <button
               onClick={handleRecaptchaVerification}
-              disabled={loading}
+              disabled={loading || !recaptchaReady}
               className="bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? 'Verifying...' : 'Verify & Claim Code'}
+              {loading ? 'Verifying...' : recaptchaReady ? 'Verify & Claim Code' : 'Loading...'}
             </button>
           </div>
           {loading && (
@@ -408,12 +455,4 @@ function ClaimPageComponent({ params }: ClaimPageProps) {
   }
 
   return null
-}
-
-export default function ClaimPage({ params }: ClaimPageProps) {
-  return (
-    <ReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}>
-      <ClaimPageComponent params={params} />
-    </ReCaptchaProvider>
-  )
 }
