@@ -43,14 +43,17 @@ export async function POST(
     const params = await context.params
     const campaignId = params.id
     const body = await request.json()
-    const { recaptchaToken, redditUsername, funnyWord } = body
+    const { recaptchaToken, redditUsername } = body
 
     if (!recaptchaToken) {
       return NextResponse.json({ error: 'reCAPTCHA token is required' }, { status: 400 })
     }
 
-    // Skip reCAPTCHA verification if it's already verified (for Reddit flow)
-    if (recaptchaToken !== 'verified') {
+    // Check if this is a bypass token
+    const isBypass = recaptchaToken.startsWith('bypass_')
+    
+    // Skip reCAPTCHA verification if it's already verified (for Reddit flow) or bypass
+    if (recaptchaToken !== 'verified' && !isBypass) {
       const isValidRecaptcha = await verifyRecaptcha(recaptchaToken)
       if (!isValidRecaptcha) {
         return NextResponse.json({ error: 'reCAPTCHA verification failed' }, { status: 400 })
@@ -75,15 +78,14 @@ export async function POST(
       return NextResponse.json({ error: 'Campaign has expired' }, { status: 410 })
     }
 
-    // Check Reddit verification if required
-    if (campaign.require_reddit_verification) {
+    // Check Reddit verification if required (skip for bypass tokens)
+    if (campaign.require_reddit_verification && !isBypass) {
       console.log('Reddit verification required for campaign:', campaignId);
       console.log('Reddit post URL:', campaign.reddit_post_url);
       console.log('Reddit username:', redditUsername);
-      console.log('Funny word:', funnyWord);
       
-      if (!redditUsername && !funnyWord) {
-        return NextResponse.json({ error: 'Reddit username or funny word is required for this campaign' }, { status: 400 })
+      if (!redditUsername) {
+        return NextResponse.json({ error: 'Reddit username is required for this campaign' }, { status: 400 })
       }
 
       if (!campaign.reddit_post_url) {
@@ -92,22 +94,13 @@ export async function POST(
 
       try {
         console.log('Fetching Reddit post content from:', campaign.reddit_post_url);
-        const { usernames, allCommentText } = await fetchRedditPostContent(campaign.reddit_post_url)
+        const { usernames } = await fetchRedditPostContent(campaign.reddit_post_url)
         
-        if (redditUsername) {
-          // Username verification
-          if (!usernames.includes(redditUsername)) {
-            return NextResponse.json({ 
-              error: `Username "${redditUsername}" not found in the Reddit post. Please make sure you've commented in the specified post.` 
-            }, { status: 400 })
-          }
-        } else if (funnyWord) {
-          // Funny word verification
-          if (!allCommentText.includes(funnyWord.toLowerCase())) {
-            return NextResponse.json({ 
-              error: `Secret word "${funnyWord}" not found in the Reddit post. Please make sure you've commented the word in the specified post.` 
-            }, { status: 400 })
-          }
+        // Username verification
+        if (!usernames.includes(redditUsername)) {
+          return NextResponse.json({ 
+            error: `Username "${redditUsername}" not found in the Reddit post. Please make sure you've commented in the specified post.` 
+          }, { status: 400 })
         }
       } catch (error) {
         console.error('Reddit verification error:', error)

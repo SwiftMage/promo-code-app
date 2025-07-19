@@ -1,5 +1,5 @@
 
-export async function fetchRedditPostContent(postUrl: string): Promise<{usernames: string[], allCommentText: string}> {
+export async function fetchRedditPostContent(postUrl: string): Promise<{usernames: string[]}> {
   try {
     // Clean the URL - remove trailing slashes and ensure proper format
     let cleanUrl = postUrl.trim();
@@ -69,8 +69,7 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
             if (extractedUsers.length > 0) {
               console.log('Successfully extracted users from JSON:', extractedUsers.length);
               return {
-                usernames: [...new Set(extractedUsers)],
-                allCommentText: '' // We don't need comment text for username verification
+                usernames: [...new Set(extractedUsers)]
               };
             }
           } catch {
@@ -118,8 +117,7 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
         if (data.success && data.usernames) {
           console.log('Server-side fetch successful, found users:', data.usernames.length);
           return {
-            usernames: data.usernames,
-            allCommentText: data.allCommentText || ''
+            usernames: data.usernames
           };
         }
         
@@ -151,9 +149,8 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       }
     }
     
-    // Extract usernames and comment text using regex patterns
+    // Extract usernames using regex patterns
     const usernames: string[] = [];
-    const commentTexts: string[] = [];
     
     // Comprehensive patterns to find comment authors in various Reddit HTML formats
     const authorPatterns = [
@@ -192,49 +189,16 @@ export async function fetchRedditPostContent(postUrl: string): Promise<{username
       }
     }
     
-    // Pattern to find comment text - look for comment body containers
-    // Reddit comment bodies are usually in divs with specific classes
-    const commentPattern1 = /<div[^>]*class="[^"]*md[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
-    
-    // Extract comment text
-    let match: RegExpExecArray | null;
-    while ((match = commentPattern1.exec(html)) !== null) {
-      if (match[1]) {
-        // Clean HTML tags from comment text
-        const cleanText = match[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-        if (cleanText.length > 0) {
-          commentTexts.push(cleanText);
-        }
-      }
-    }
-    
     console.log('Extracted usernames from HTML:', usernames);
-    console.log('Extracted comments:', commentTexts.length);
-    
-    // If we couldn't find comments with the first pattern, try a more general approach
-    if (commentTexts.length === 0) {
-      // Look for any text that might be comments (between common Reddit elements)
-      const generalCommentPattern = /<div[^>]*(?:comment|usertext|md)[^>]*>([\s\S]*?)<\/div>/g;
-      while ((match = generalCommentPattern.exec(html)) !== null) {
-        if (match[1]) {
-          const cleanText = match[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-          if (cleanText.length > 10 && cleanText.length < 10000) { // Reasonable comment length
-            commentTexts.push(cleanText);
-          }
-        }
-      }
-    }
     
     
     const uniqueUsernames = [...new Set(usernames)];
     console.log('Total unique usernames found:', uniqueUsernames.length);
     console.log('First 10 usernames:', uniqueUsernames.slice(0, 10));
-    console.log('Total comment text length:', commentTexts.join(' ').length);
     
-    // Remove duplicates and return both usernames and combined comment text
+    // Remove duplicates and return usernames
     return {
-      usernames: [...new Set(usernames)],
-      allCommentText: commentTexts.join(' ').toLowerCase()
+      usernames: [...new Set(usernames)]
     };
     
   } catch (error) {

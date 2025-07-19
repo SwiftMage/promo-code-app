@@ -30,11 +30,15 @@ export default function ManagePage({ params }: ManagePageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'codes'>('overview')
+  const [adminClaimedCode, setAdminClaimedCode] = useState<string | null>(null)
+  const [bypassLink, setBypassLink] = useState<string | null>(null)
+  const [managementSlug, setManagementSlug] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchCampaignData = async () => {
       try {
         const resolvedParams = await params
+        setManagementSlug(resolvedParams.slug)
         const response = await fetch(`/api/manage/${resolvedParams.slug}`)
         
         if (!response.ok) {
@@ -73,6 +77,46 @@ export default function ManagePage({ params }: ManagePageProps) {
     link.download = `promo-codes-${stats?.campaignId}.csv`
     link.click()
     URL.revokeObjectURL(url)
+  }
+
+  const claimCodeAsAdmin = async () => {
+    if (!managementSlug) return
+    
+    try {
+      const response = await fetch(`/api/manage/${managementSlug}/claim-code`, {
+        method: 'POST'
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        alert(error.error || 'Failed to claim code')
+        return
+      }
+      
+      const data = await response.json()
+      setAdminClaimedCode(data.code)
+      
+      // Refresh the campaign data to update the stats
+      const refreshResponse = await fetch(`/api/manage/${managementSlug}`)
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json()
+        setStats(refreshData.stats)
+        setCodes(refreshData.codes)
+      }
+    } catch (error) {
+      console.error('Error claiming code:', error)
+      alert('Failed to claim code')
+    }
+  }
+
+  const generateBypassLink = () => {
+    if (!stats) return
+    
+    const timestamp = Date.now()
+    const bypassToken = btoa(`bypass_${stats.campaignId}_${timestamp}`)
+    const link = `${window.location.origin}/claim/${stats.campaignId}?bypass=${bypassToken}`
+    setBypassLink(link)
+    navigator.clipboard.writeText(link)
   }
 
   if (loading) {
@@ -236,9 +280,41 @@ export default function ManagePage({ params }: ManagePageProps) {
                       >
                         Copy Claim Link
                       </button>
+                      <button
+                        onClick={claimCodeAsAdmin}
+                        className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 text-sm font-medium"
+                      >
+                        Claim Code as Admin
+                      </button>
+                      <button
+                        onClick={generateBypassLink}
+                        className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 text-sm font-medium"
+                      >
+                        Generate Bypass Link
+                      </button>
                     </div>
                   </div>
                 </div>
+                
+                {adminClaimedCode && (
+                  <div className="mt-6 bg-green-50 border border-green-200 rounded-md p-4">
+                    <h4 className="text-sm font-semibold text-green-800 mb-2">Admin Claimed Code</h4>
+                    <p className="text-lg font-mono text-green-900">{adminClaimedCode}</p>
+                    <p className="text-xs text-green-700 mt-2">
+                      This code has been marked as used and claimed by admin.
+                    </p>
+                  </div>
+                )}
+                
+                {bypassLink && (
+                  <div className="mt-6 bg-orange-50 border border-orange-200 rounded-md p-4">
+                    <h4 className="text-sm font-semibold text-orange-800 mb-2">Bypass Link Generated</h4>
+                    <p className="text-xs text-orange-900 break-all font-mono">{bypassLink}</p>
+                    <p className="text-xs text-orange-700 mt-2">
+                      This link has been copied to clipboard. It bypasses Reddit verification requirements.
+                    </p>
+                  </div>
+                )}
                 
                 <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-md p-4">
                   <h4 className="text-sm font-semibold text-yellow-800 mb-2">Visitor Identification System</h4>

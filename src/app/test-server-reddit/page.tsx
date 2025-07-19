@@ -108,7 +108,7 @@ export default function TestServerReddit() {
                       Total usernames found: <span className="font-semibold">{result.totalUsernames as number}</span>
                     </p>
                     <p className="text-sm text-gray-600">
-                      Comment text length: <span className="font-semibold">{(result.allCommentText as string)?.length || 0}</span>
+                      Usernames extracted successfully
                     </p>
                   </div>
                   

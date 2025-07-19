@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
     
     // Extract usernames from Reddit JSON
     const usernames: string[] = []
-    const commentTexts: string[] = []
     
     if (Array.isArray(data) && data[1]?.data?.children) {
       const comments = data[1].data.children
@@ -53,9 +52,6 @@ export async function POST(request: NextRequest) {
         const data = comment.data as Record<string, unknown>
         if (data?.author && typeof data.author === 'string' && data.author !== '[deleted]' && data.author !== 'AutoModerator') {
           usernames.push(data.author)
-          if (data.body && typeof data.body === 'string') {
-            commentTexts.push(data.body)
-          }
         }
         // Recursively check replies
         const replies = data?.replies as Record<string, unknown>
@@ -72,8 +68,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      usernames: [...new Set(usernames)],
-      allCommentText: commentTexts.join(' ').toLowerCase()
+      usernames: [...new Set(usernames)]
     })
 
   } catch (error) {

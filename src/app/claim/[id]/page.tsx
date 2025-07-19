@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import AdSense from '@/components/AdSense'
-import { generateFunnyWord } from '@/lib/funny-words'
 
 declare global {
   interface Window {
@@ -20,6 +20,7 @@ interface ClaimPageProps {
 }
 
 export default function ClaimPage({ params }: ClaimPageProps) {
+  const searchParams = useSearchParams()
   const [code, setCode] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,48 +29,53 @@ export default function ClaimPage({ params }: ClaimPageProps) {
   const [campaignId, setCampaignId] = useState<string | null>(null)
   const [requiresRedditVerification, setRequiresRedditVerification] = useState(false)
   const [redditUsername, setRedditUsername] = useState('')
-  const [verificationMode, setVerificationMode] = useState<'username' | 'funnyword'>('username')
-  const [funnyWord, setFunnyWord] = useState('')
-  const [wordCopied, setWordCopied] = useState(false)
   const [step, setStep] = useState<'recaptcha' | 'reddit' | 'complete'>('recaptcha')
   const [recaptchaReady, setRecaptchaReady] = useState(false)
+  const [hasBypass, setHasBypass] = useState(false)
 
   useEffect(() => {
-    // Load reCAPTCHA v3 script
-    const loadRecaptcha = () => {
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-      console.log('reCAPTCHA Site Key:', siteKey ? 'Present' : 'Missing')
-      
-      if (!siteKey) {
-        console.error('NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set')
-        setError('reCAPTCHA configuration missing')
-        return
-      }
+    // Check for bypass parameter
+    const bypassToken = searchParams.get('bypass')
+    if (bypassToken) {
+      setHasBypass(true)
+      // Skip reCAPTCHA loading for bypass links
+    } else {
+      // Load reCAPTCHA v3 script
+      const loadRecaptcha = () => {
+        const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+        console.log('reCAPTCHA Site Key:', siteKey ? 'Present' : 'Missing')
+        
+        if (!siteKey) {
+          console.error('NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set')
+          setError('reCAPTCHA configuration missing')
+          return
+        }
 
-      if (window.grecaptcha) {
-        console.log('reCAPTCHA already loaded')
-        setRecaptchaReady(true)
-        return
-      }
-
-      console.log('Loading reCAPTCHA script...')
-      const script = document.createElement('script')
-      script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`
-      script.onload = () => {
-        console.log('reCAPTCHA script loaded')
-        window.grecaptcha.ready(() => {
-          console.log('reCAPTCHA ready')
+        if (window.grecaptcha) {
+          console.log('reCAPTCHA already loaded')
           setRecaptchaReady(true)
-        })
-      }
-      script.onerror = () => {
-        console.error('Failed to load reCAPTCHA script')
-        setError('Failed to load reCAPTCHA')
-      }
-      document.head.appendChild(script)
-    }
+          return
+        }
 
-    loadRecaptcha()
+        console.log('Loading reCAPTCHA script...')
+        const script = document.createElement('script')
+        script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`
+        script.onload = () => {
+          console.log('reCAPTCHA script loaded')
+          window.grecaptcha.ready(() => {
+            console.log('reCAPTCHA ready')
+            setRecaptchaReady(true)
+          })
+        }
+        script.onerror = () => {
+          console.error('Failed to load reCAPTCHA script')
+          setError('Failed to load reCAPTCHA')
+        }
+        document.head.appendChild(script)
+      }
+
+      loadRecaptcha()
+    }
 
     const getCampaignId = async () => {
       const resolvedParams = await params
@@ -87,7 +93,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
       }
     }
     getCampaignId()
-  }, [params])
+  }, [params, searchParams])
 
   const handleRecaptchaVerification = async () => {
     if (!campaignId) return
@@ -96,29 +102,36 @@ export default function ClaimPage({ params }: ClaimPageProps) {
     setError(null)
     
     try {
-      // Check if reCAPTCHA is ready
-      if (!recaptchaReady || !window.grecaptcha) {
-        setError('reCAPTCHA is still loading, please try again in a moment')
-        setLoading(false)
-        return
-      }
-
-      // Execute reCAPTCHA v3
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-      if (!siteKey) {
-        setError('reCAPTCHA configuration error')
-        setLoading(false)
-        return
-      }
-
-      const recaptchaToken = await window.grecaptcha.execute(siteKey, {
-        action: 'claim_code'
-      })
+      let recaptchaToken: string
       
-      if (!recaptchaToken) {
-        setError('reCAPTCHA verification failed')
-        setLoading(false)
-        return
+      if (hasBypass) {
+        // Use bypass token instead of reCAPTCHA
+        recaptchaToken = 'bypass_' + searchParams.get('bypass')
+      } else {
+        // Check if reCAPTCHA is ready
+        if (!recaptchaReady || !window.grecaptcha) {
+          setError('reCAPTCHA is still loading, please try again in a moment')
+          setLoading(false)
+          return
+        }
+
+        // Execute reCAPTCHA v3
+        const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+        if (!siteKey) {
+          setError('reCAPTCHA configuration error')
+          setLoading(false)
+          return
+        }
+
+        recaptchaToken = await window.grecaptcha.execute(siteKey, {
+          action: 'claim_code'
+        })
+        
+        if (!recaptchaToken) {
+          setError('reCAPTCHA verification failed')
+          setLoading(false)
+          return
+        }
       }
       
       if (requiresRedditVerification) {
@@ -154,8 +167,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
   }
 
   const handleRedditVerification = async () => {
-    if (verificationMode === 'username' && !redditUsername.trim()) return
-    if (verificationMode === 'funnyword' && !funnyWord.trim()) return
+    if (!redditUsername.trim()) return
     if (!campaignId) return
     
     setLoading(true)
@@ -194,8 +206,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
         },
         body: JSON.stringify({ 
           recaptchaToken,
-          redditUsername: verificationMode === 'username' ? redditUsername.trim() : undefined,
-          funnyWord: verificationMode === 'funnyword' ? funnyWord : undefined
+          redditUsername: redditUsername.trim()
         }),
       })
       
@@ -215,32 +226,6 @@ export default function ClaimPage({ params }: ClaimPageProps) {
     }
   }
 
-  const copyFunnyWordToClipboard = async () => {
-    if (!funnyWord) return
-    
-    const textToCopy = `Getting my code from promodistro.link (keyword: ${funnyWord})`
-    
-    try {
-      await navigator.clipboard.writeText(textToCopy)
-      setWordCopied(true)
-      setTimeout(() => setWordCopied(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy funny word: ', err)
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea')
-      textArea.value = textToCopy
-      document.body.appendChild(textArea)
-      textArea.select()
-      try {
-        document.execCommand('copy')
-        setWordCopied(true)
-        setTimeout(() => setWordCopied(false), 2000)
-      } catch (fallbackErr) {
-        console.error('Fallback copy failed: ', fallbackErr)
-      }
-      document.body.removeChild(textArea)
-    }
-  }
 
   const copyToClipboard = async () => {
     if (!code) return
@@ -258,20 +243,22 @@ export default function ClaimPage({ params }: ClaimPageProps) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl mb-6">🔐</div>
+          <div className="text-5xl mb-6">{hasBypass ? '🎟️' : '🔐'}</div>
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            Verify You&apos;re Human
+            {hasBypass ? 'Direct Access Code' : 'Verify You\'re Human'}
           </h1>
           <p className="text-gray-600 mb-8">
-            Click the button below to verify and claim your promo code
+            {hasBypass 
+              ? 'You have a direct access link. Click below to claim your code.'
+              : 'Click the button below to verify and claim your promo code'}
           </p>
           <div className="inline-block">
             <button
               onClick={handleRecaptchaVerification}
-              disabled={loading || !recaptchaReady}
+              disabled={loading || (!hasBypass && !recaptchaReady)}
               className="bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? 'Verifying...' : recaptchaReady ? 'Verify & Claim Code' : 'Loading...'}
+              {loading ? 'Verifying...' : hasBypass ? 'Claim Code' : recaptchaReady ? 'Verify & Claim Code' : 'Loading...'}
             </button>
           </div>
           {loading && (
@@ -294,96 +281,30 @@ export default function ClaimPage({ params }: ClaimPageProps) {
             Reddit Verification Required
           </h1>
           <p className="text-gray-600 mb-6">
-            You must comment in the specified Reddit post to claim a code. Choose your verification method:
+            You must comment in the specified Reddit post to claim a code.
           </p>
           
           <div className="mb-6">
-            <div className="flex justify-center space-x-4 mb-4">
-              <button
-                onClick={() => setVerificationMode('username')}
-                className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                  verificationMode === 'username'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Use Username
-              </button>
-              <button
-                onClick={() => {
-                  setVerificationMode('funnyword')
-                  if (!funnyWord) setFunnyWord(generateFunnyWord())
-                }}
-                className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                  verificationMode === 'funnyword'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Use Secret Word
-              </button>
-            </div>
+            <label htmlFor="redditUsername" className="block text-sm font-medium text-gray-700 mb-2">
+              Reddit Username
+            </label>
+            <input
+              type="text"
+              id="redditUsername"
+              value={redditUsername}
+              onChange={(e) => setRedditUsername(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
+              placeholder="your_reddit_username"
+              required
+            />
+            <p className="mt-2 text-sm text-gray-500">
+              Enter your username without the u/ prefix
+            </p>
           </div>
-
-          {verificationMode === 'username' ? (
-            <div className="mb-6">
-              <label htmlFor="redditUsername" className="block text-sm font-medium text-gray-700 mb-2">
-                Reddit Username
-              </label>
-              <input
-                type="text"
-                id="redditUsername"
-                value={redditUsername}
-                onChange={(e) => setRedditUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
-                placeholder="your_reddit_username"
-                required
-              />
-              <p className="mt-2 text-sm text-gray-500">
-                Enter your username without the u/ prefix
-              </p>
-            </div>
-          ) : (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Secret Word to Comment
-              </label>
-              <div className="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-200 rounded-lg p-4 mb-4">
-                <div className="text-lg font-bold text-purple-800 mb-2">Getting my code from promodistro.link (keyword: {funnyWord})</div>
-                <p className="text-sm text-purple-600">
-                  Copy and paste this text in a comment on the Reddit post
-                </p>
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={copyFunnyWordToClipboard}
-                  className={`flex-1 py-2 px-3 rounded-md focus:outline-none focus:ring-2 text-sm font-medium transition-colors ${
-                    wordCopied 
-                      ? 'bg-green-600 text-white ring-green-500' 
-                      : 'bg-purple-600 text-white hover:bg-purple-700 ring-purple-500'
-                  }`}
-                >
-                  {wordCopied ? '✓ Copied!' : 'Copy Text'}
-                </button>
-                <button
-                  onClick={() => {
-                    setFunnyWord(generateFunnyWord())
-                    setWordCopied(false) // Reset copied state when generating new word
-                  }}
-                  className="flex-1 bg-gray-600 text-white py-2 px-3 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm"
-                >
-                  Generate New
-                </button>
-              </div>
-              <p className="mt-2 text-sm text-gray-500">
-                Don&apos;t want to share your username? No problem! Just comment this text in the post.
-              </p>
-            </div>
-          )}
 
           <button
             onClick={handleRedditVerification}
-            disabled={loading || (verificationMode === 'username' && !redditUsername.trim()) || (verificationMode === 'funnyword' && !funnyWord.trim())}
+            disabled={loading || !redditUsername.trim()}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
             {loading ? 'Verifying...' : 'Verify & Claim Code'}

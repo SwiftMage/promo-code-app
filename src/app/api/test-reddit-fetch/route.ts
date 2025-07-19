@@ -16,9 +16,7 @@ export async function POST(request: NextRequest) {
       success: true,
       usernamesFound: result.usernames.length,
       usernames: result.usernames.slice(0, 20), // First 20 usernames
-      hasTargetUser: result.usernames.includes('BETO123USA'),
-      commentTextLength: result.allCommentText.length,
-      sampleCommentText: result.allCommentText.substring(0, 200)
+      hasTargetUser: result.usernames.includes('BETO123USA')
     })
 
   } catch (error) {
