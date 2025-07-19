@@ -7,13 +7,22 @@ export async function POST(
 ) {
   try {
     const params = await context.params
-    const managementSlug = params.slug
+    const slug = params.slug
+    
+    const parts = slug.split('-')
+    if (parts.length < 2) {
+      return NextResponse.json({ error: 'Invalid management link' }, { status: 400 })
+    }
+    
+    const campaignId = parts[0]
+    const adminKey = parts.slice(1).join('-')
 
-    // Verify the management slug exists
+    // Verify the management credentials
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .select('id')
-      .eq('management_slug', managementSlug)
+      .eq('id', campaignId)
+      .eq('admin_key', adminKey)
       .single()
 
     if (campaignError || !campaign) {
