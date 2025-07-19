@@ -134,8 +134,8 @@ export default function ClaimPage({ params }: ClaimPageProps) {
         }
       }
       
-      if (requiresRedditVerification) {
-        // Just move to Reddit verification step
+      if (requiresRedditVerification && !hasBypass) {
+        // Just move to Reddit verification step (unless we have bypass)
         setStep('reddit')
         setLoading(false)
         return
