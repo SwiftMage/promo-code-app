@@ -81,18 +81,6 @@ function SuccessContent() {
               </div>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <h3 className="font-semibold text-yellow-800 mb-2">Important Notes:</h3>
-              <ul className="text-yellow-700 text-sm space-y-1">
-                <li>• Each visitor gets only one code based on their device/IP fingerprint</li>
-                <li>• Keep your management link private and secure</li>
-                <li>• Codes are distributed on a first-come, first-served basis</li>
-                <li>• Use the management link to track usage and export data</li>
-                <li>• <strong>Note:</strong> The fingerprinting system is not foolproof - determined users may obtain multiple codes using different devices or networks</li>
-                <li>• <strong>Expiration:</strong> This campaign and all data will be automatically deleted after 30 days</li>
-              </ul>
-            </div>
-
             <div className="flex gap-4">
               <a
                 href={claimUrl || '#'}
@@ -110,6 +98,18 @@ function SuccessContent() {
               >
                 View Management Page
               </a>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <h3 className="font-semibold text-yellow-800 mb-2">Important Notes:</h3>
+              <ul className="text-yellow-700 text-sm space-y-1">
+                <li>• Each visitor gets only one code based on their device/IP fingerprint</li>
+                <li>• Keep your management link private and secure</li>
+                <li>• Codes are distributed on a first-come, first-served basis</li>
+                <li>• Use the management link to track usage and export data</li>
+                <li>• <strong>Note:</strong> The fingerprinting system is not foolproof - determined users may obtain multiple codes using different devices or networks</li>
+                <li>• <strong>Expiration:</strong> This campaign and all data will be automatically deleted after 30 days</li>
+              </ul>
             </div>
           </div>
 
